@@ -1,6 +1,8 @@
-`Tmds.Systemd` is a netstandard library for interacting with systemd.
+[![Travis](https://api.travis-ci.org/tmds/Tmds.Systemd.svg?branch=master)](https://travis-ci.org/tmds/Tmds.Systemd)
 
-# Api
+Tmds.Systemd is a netstandard library for interacting with systemd.
+
+## Api
 
 ```C#
 namespace Tmds.Systemd
@@ -13,7 +15,7 @@ namespace Tmds.Systemd
 }
 ```
 
-# Example
+## Example
 
 Create the application:
 
