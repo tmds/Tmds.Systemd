@@ -66,7 +66,7 @@ namespace Tmds.Systemd.Tests
             string path;
             using (var server = CreateServerSocket(out path))
             {
-                bool notified = ServiceManager.NotifyInternal(path, state, states);
+                bool notified = ServiceManager.Notify(path, state, states);
                 string message = ReadMessage(server);
 
                 Assert.True(notified);
