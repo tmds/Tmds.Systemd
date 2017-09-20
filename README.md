@@ -9,8 +9,10 @@ namespace Tmds.Systemd
 {
   class ServiceManager
   {
-    // notify service manager about start-up completion and other service status changes.
+    // Notify service manager about start-up completion and other service status changes.
     public static bool Notify(ServiceState state, params ServiceState[] states);
+    // Instantiate Sockets for the file descriptors passed by the service manager.
+    public static Socket[] GetListenSockets();
   }
 }
 ```
