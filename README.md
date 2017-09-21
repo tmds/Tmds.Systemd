@@ -1,4 +1,5 @@
 [![Travis](https://api.travis-ci.org/tmds/Tmds.Systemd.svg?branch=master)](https://travis-ci.org/tmds/Tmds.Systemd)
+[![NuGet](https://img.shields.io/nuget/v/Tmds.Systemd.svg)](https://www.nuget.org/packages/Tmds.Systemd)
 
 Tmds.Systemd is a netstandard library for interacting with systemd.
 
