@@ -11,6 +11,9 @@ namespace Tmds.Systemd
         private static string s_socketPath;
         const string NOTIFY_SOCKET = "NOTIFY_SOCKET";
 
+        /// <summary>
+        /// Notify service manager about start-up completion and other service status changes.
+        /// </summary>
         public static bool Notify(ServiceState state, params ServiceState[] states)
         {
             string path = GetSocketPath();
