@@ -20,6 +20,9 @@ namespace Tmds.Systemd
         [DllImport("libc", SetLastError=true)]
         internal static extern int fcntl(int fd, int cmd, int val);
 
+        /// <summary>
+        /// Instantiate Sockets for the file descriptors passed by the service manager.
+        /// </summary>
         public static Socket[] GetListenSockets()
         {
             lock (_gate)
