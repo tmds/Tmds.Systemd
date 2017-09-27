@@ -75,14 +75,18 @@ namespace Tmds.Systemd.Tests
         }
 
         [Fact]
-        public void SocketsWorks()
+        public void ListenSocketCanAccept()
         {
             using (var fds = new FdSequence(3))
             {
                 Socket[] sockets = fds.GetListenSockets(fds[0], fds.Count);
-                foreach (Socket socket in sockets)
+                foreach (Socket server in sockets)
                 {
-                    socket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+                    using (var client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+                    {
+                        client.Connect(server.LocalEndPoint);
+                        var acceptedSocket = server.Accept();
+                    }
                 }
             }
         }
@@ -119,6 +123,8 @@ namespace Tmds.Systemd.Tests
                     {
                         int fd = s_startFd++;
                         var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                        socket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+                        socket.Listen(10);
                         int rv = dup2(GetFd(socket), fd);
                         Assert.NotEqual(-1, rv);
                         _fds[i] = fd;

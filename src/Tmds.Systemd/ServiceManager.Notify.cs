@@ -5,7 +5,6 @@ using System.Text;
 
 namespace Tmds.Systemd
 {
-    using SizeT = System.UIntPtr;
     public partial class ServiceManager
     {
         private static string s_socketPath;
