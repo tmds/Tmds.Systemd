@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.IO.Pipes;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
@@ -19,6 +21,18 @@ namespace Tmds.Systemd
 
         [DllImport("libc", SetLastError=true)]
         internal static extern int fcntl(int fd, int cmd, int val);
+
+        
+        const int SO_TYPE = 3;
+        const int SO_PROTOCOL = 38;
+        const int SO_DOMAIN = 39;
+        const int AF_INET = 2;
+        const int AF_INET6 = 10;
+        const int AF_UNIX = 1;
+        const int SOL_SOCKET = 1;
+
+        [DllImport("libc", SetLastError=true)]
+        internal static unsafe extern int getsockopt(int sockfd, int level, int optname, byte* optval, uint* optlen);
 
         /// <summary>
         /// Instantiate Sockets for the file descriptors passed by the service manager.
@@ -68,6 +82,32 @@ namespace Tmds.Systemd
 
             // private Socket(SafeCloseSocket fd)
             var socket = reflectionMethods.SocketConstructor.Invoke(new[] { safeCloseSocket });
+
+            // private bool _isListening = false;
+            reflectionMethods.IsListening.SetValue(socket, true);
+
+            EndPoint endPoint;
+            int domain = GetSockOpt(fd, SO_DOMAIN);
+            if (domain == AF_INET)
+            {
+                endPoint = new IPEndPoint(IPAddress.Any, 0);
+            }
+            else if (domain == AF_INET6)
+            {
+                endPoint = new IPEndPoint(IPAddress.Any, 0);
+            }
+            else if (domain == AF_UNIX)
+            {
+                // public UnixDomainSocketEndPoint(string path)
+                endPoint = (EndPoint)reflectionMethods.UnixDomainSocketEndPointConstructor.Invoke(new[] { "/" });
+            }
+            else
+            {
+                throw new NotSupportedException($"Unknown address family: SO_DOMAIN={domain}.");
+            }
+            // internal EndPoint _rightEndPoint;
+            reflectionMethods.RightEndPoint.SetValue(socket, endPoint);
+
             return (Socket)socket;
         }
 
@@ -75,6 +115,9 @@ namespace Tmds.Systemd
         {
             public MethodInfo SafeCloseSocketCreate;
             public ConstructorInfo SocketConstructor;
+            public FieldInfo RightEndPoint;
+            public FieldInfo IsListening;
+            public ConstructorInfo UnixDomainSocketEndPointConstructor;
         }
 
         private static ReflectionMethods LookupMethods()
@@ -95,10 +138,34 @@ namespace Tmds.Systemd
             {
                 ThrowNotSupported(nameof(socketConstructor));
             }
+            FieldInfo rightEndPoint = typeof(Socket).GetTypeInfo().GetField("_rightEndPoint", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (rightEndPoint == null)
+            {
+                ThrowNotSupported(nameof(rightEndPoint));
+            }
+            FieldInfo isListening = typeof(Socket).GetTypeInfo().GetField("_isListening", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (isListening == null)
+            {
+                ThrowNotSupported(nameof(isListening));
+            }
+            Assembly pipeStreamAssembly = typeof(PipeStream).GetTypeInfo().Assembly;
+            Type unixDomainSocketEndPointType = pipeStreamAssembly.GetType("System.Net.Sockets.UnixDomainSocketEndPoint");
+            if (unixDomainSocketEndPointType == null)
+            {
+                ThrowNotSupported(nameof(unixDomainSocketEndPointType));
+            }
+            ConstructorInfo unixDomainSocketEndPointConstructor = unixDomainSocketEndPointType.GetTypeInfo().GetConstructor(BindingFlags.Public | BindingFlags.NonPublic| BindingFlags.Instance, null, new[] { typeof(string) }, null);
+            if (unixDomainSocketEndPointConstructor == null)
+            {
+                ThrowNotSupported(nameof(unixDomainSocketEndPointConstructor));
+            }
             return new ReflectionMethods
             {
                 SafeCloseSocketCreate = safeCloseSocketCreate,
-                SocketConstructor = socketConstructor
+                SocketConstructor = socketConstructor,
+                RightEndPoint = rightEndPoint,
+                IsListening = isListening,
+                UnixDomainSocketEndPointConstructor = unixDomainSocketEndPointConstructor
             };
         }
 
@@ -113,6 +180,21 @@ namespace Tmds.Systemd
             SD_LISTEN_FDS_START = fdStart;
             Environment.SetEnvironmentVariable(LISTEN_FDS, null);
             Environment.SetEnvironmentVariable(LISTEN_PID, null);
+        }
+
+        private static unsafe int GetSockOpt(int fd, int optname)
+        {
+            int rv = 0;
+            uint optlen = 4;
+            if (getsockopt(fd, SOL_SOCKET, optname, (byte*)&rv, &optlen) == 0)
+            {
+                return rv;
+            }
+            else
+            {
+                int errno = Marshal.GetLastWin32Error();
+                throw new IOException($"Error while calling getsockopt(SOL_SOCKET, {optname}): errno={errno}.");
+            }
         }
     }
 }
