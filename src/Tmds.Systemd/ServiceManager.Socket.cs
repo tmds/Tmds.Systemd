@@ -108,6 +108,9 @@ namespace Tmds.Systemd
             // internal EndPoint _rightEndPoint;
             reflectionMethods.RightEndPoint.SetValue(socket, endPoint);
 
+            int sockType = GetSockOpt(fd, SO_TYPE);
+            reflectionMethods.SocketType.SetValue(socket, sockType);
+
             return (Socket)socket;
         }
 
@@ -117,6 +120,7 @@ namespace Tmds.Systemd
             public ConstructorInfo SocketConstructor;
             public FieldInfo RightEndPoint;
             public FieldInfo IsListening;
+            public FieldInfo SocketType;
             public ConstructorInfo UnixDomainSocketEndPointConstructor;
         }
 
@@ -148,6 +152,11 @@ namespace Tmds.Systemd
             {
                 ThrowNotSupported(nameof(isListening));
             }
+            FieldInfo socketType = typeof(Socket).GetTypeInfo().GetField("_socketType", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (socketType == null)
+            {
+                ThrowNotSupported(nameof(socketType));
+            }
             Assembly pipeStreamAssembly = typeof(PipeStream).GetTypeInfo().Assembly;
             Type unixDomainSocketEndPointType = pipeStreamAssembly.GetType("System.Net.Sockets.UnixDomainSocketEndPoint");
             if (unixDomainSocketEndPointType == null)
@@ -165,6 +174,7 @@ namespace Tmds.Systemd
                 SocketConstructor = socketConstructor,
                 RightEndPoint = rightEndPoint,
                 IsListening = isListening,
+                SocketType = socketType,
                 UnixDomainSocketEndPointConstructor = unixDomainSocketEndPointConstructor
             };
         }
