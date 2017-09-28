@@ -85,7 +85,8 @@ namespace Tmds.Systemd.Tests
                     using (var client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
                     {
                         client.Connect(server.LocalEndPoint);
-                        var acceptedSocket = server.Accept();
+                        using (var acceptedSocket = server.Accept())
+                        { }
                     }
                 }
             }
