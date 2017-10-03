@@ -98,34 +98,35 @@ namespace Tmds.Systemd
             reflectionMethods.IsListening.SetValue(socket, true);
 
             EndPoint endPoint;
-            int domain = GetSockOpt(fd, SO_DOMAIN);
-            if (domain == AF_INET)
+            AddressFamily addressFamily = ConvertAddressFamily(GetSockOpt(fd, SO_DOMAIN));
+            if (addressFamily == AddressFamily.InterNetwork)
             {
                 endPoint = new IPEndPoint(IPAddress.Any, 0);
             }
-            else if (domain == AF_INET6)
+            else if (addressFamily == AddressFamily.InterNetworkV6)
             {
                 endPoint = new IPEndPoint(IPAddress.Any, 0);
             }
-            else if (domain == AF_UNIX)
+            else if (addressFamily == AddressFamily.Unix)
             {
                 // public UnixDomainSocketEndPoint(string path)
                 endPoint = (EndPoint)reflectionMethods.UnixDomainSocketEndPointConstructor.Invoke(new[] { "/" });
             }
             else
             {
-                throw new NotSupportedException($"Unknown address family: SO_DOMAIN={domain}.");
+                throw new NotSupportedException($"Unknown address family: {addressFamily}.");
             }
             // internal EndPoint _rightEndPoint;
             reflectionMethods.RightEndPoint.SetValue(socket, endPoint);
-
-            SocketType sockType = ConvertSocketType(GetSockOpt(fd, SO_TYPE));
-            reflectionMethods.SocketType.SetValue(socket, sockType);
-
-            AddressFamily addressFamily = ConvertAddressFamily(GetSockOpt(fd, SO_DOMAIN));
+            // private AddressFamily _addressFamily;
             reflectionMethods.AddressFamily.SetValue(socket, addressFamily);
 
+            SocketType sockType = ConvertSocketType(GetSockOpt(fd, SO_TYPE));
+            // private SocketType _socketType;
+            reflectionMethods.SocketType.SetValue(socket, sockType);
+
             ProtocolType protocolType = ConvertProtocolType(GetSockOpt(fd, SO_PROTOCOL));
+            // private ProtocolType _protocolType;
             reflectionMethods.ProtocolType.SetValue(socket, protocolType);
 
             return (Socket)socket;
