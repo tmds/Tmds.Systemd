@@ -31,6 +31,17 @@ namespace Tmds.Systemd
         const int AF_UNIX = 1;
         const int SOL_SOCKET = 1;
 
+        const int SOCK_STREAM = 1;
+        const int SOCK_DGRAM = 2;
+        const int SOCK_RAW = 3;
+        const int SOCK_RDM = 4;
+        const int SOCK_SEQPACKET = 5;
+
+        const int IPPROTO_ICMP = 1;
+        const int IPPROTO_TCP = 6;
+        const int IPPROTO_UDP = 17;
+        const int IPPROTO_ICMPV6 = 58;
+
         [DllImport("libc", SetLastError=true)]
         internal static unsafe extern int getsockopt(int sockfd, int level, int optname, byte* optval, uint* optlen);
 
@@ -108,8 +119,14 @@ namespace Tmds.Systemd
             // internal EndPoint _rightEndPoint;
             reflectionMethods.RightEndPoint.SetValue(socket, endPoint);
 
-            int sockType = GetSockOpt(fd, SO_TYPE);
+            SocketType sockType = ConvertSocketType(GetSockOpt(fd, SO_TYPE));
             reflectionMethods.SocketType.SetValue(socket, sockType);
+
+            AddressFamily addressFamily = ConvertAddressFamily(GetSockOpt(fd, SO_DOMAIN));
+            reflectionMethods.AddressFamily.SetValue(socket, addressFamily);
+
+            ProtocolType protocolType = ConvertProtocolType(GetSockOpt(fd, SO_PROTOCOL));
+            reflectionMethods.ProtocolType.SetValue(socket, protocolType);
 
             return (Socket)socket;
         }
@@ -121,6 +138,8 @@ namespace Tmds.Systemd
             public FieldInfo RightEndPoint;
             public FieldInfo IsListening;
             public FieldInfo SocketType;
+            public FieldInfo AddressFamily;
+            public FieldInfo ProtocolType;
             public ConstructorInfo UnixDomainSocketEndPointConstructor;
         }
 
@@ -157,6 +176,17 @@ namespace Tmds.Systemd
             {
                 ThrowNotSupported(nameof(socketType));
             }
+            FieldInfo addressFamily = typeof(Socket).GetTypeInfo().GetField("_addressFamily", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (addressFamily == null)
+            {
+                ThrowNotSupported(nameof(addressFamily));
+            }
+            FieldInfo protocolType = typeof(Socket).GetTypeInfo().GetField("_protocolType", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (protocolType == null)
+            {
+                ThrowNotSupported(nameof(protocolType));
+            }
+
             Assembly pipeStreamAssembly = typeof(PipeStream).GetTypeInfo().Assembly;
             Type unixDomainSocketEndPointType = pipeStreamAssembly.GetType("System.Net.Sockets.UnixDomainSocketEndPoint");
             if (unixDomainSocketEndPointType == null)
@@ -175,6 +205,8 @@ namespace Tmds.Systemd
                 RightEndPoint = rightEndPoint,
                 IsListening = isListening,
                 SocketType = socketType,
+                AddressFamily = addressFamily,
+                ProtocolType = protocolType,
                 UnixDomainSocketEndPointConstructor = unixDomainSocketEndPointConstructor
             };
         }
@@ -204,6 +236,78 @@ namespace Tmds.Systemd
             {
                 int errno = Marshal.GetLastWin32Error();
                 throw new IOException($"Error while calling getsockopt(SOL_SOCKET, {optname}): errno={errno}.");
+            }
+        }
+
+        private static SocketType ConvertSocketType(int socketType)
+        {
+            if (socketType == SOCK_STREAM)
+            {
+                return SocketType.Stream;
+            }
+            else if (socketType == SOCK_DGRAM)
+            {
+                return SocketType.Dgram;
+            }
+            else if (socketType == SOCK_RAW)
+            {
+                return SocketType.Raw;
+            }
+            else if (socketType == SOCK_RDM)
+            {
+                return SocketType.Rdm;
+            }
+            else if (socketType == SOCK_SEQPACKET)
+            {
+                return SocketType.Seqpacket;
+            }
+            else
+            {
+                throw new NotSupportedException($"Unknown socket type: SO_TYPE={socketType}.");
+            }
+        }
+
+        private static AddressFamily ConvertAddressFamily(int addressFamily)
+        {
+            if (addressFamily == AF_INET)
+            {
+                return AddressFamily.InterNetwork;
+            }
+            else if (addressFamily == AF_INET6)
+            {
+                return AddressFamily.InterNetworkV6;
+            }
+            else if (addressFamily == AF_UNIX)
+            {
+                return AddressFamily.Unix;
+            }
+            else
+            {
+                throw new NotSupportedException($"Unknown Address Family: SO_DOMAIN={addressFamily}.");
+            }
+        }
+
+        private static ProtocolType ConvertProtocolType(int protocolType)
+        {
+            if (protocolType == IPPROTO_ICMP)
+            {
+                return ProtocolType.Icmp;
+            }
+            else if (protocolType == IPPROTO_ICMPV6)
+            {
+                return ProtocolType.IcmpV6;
+            }
+            else if (protocolType == IPPROTO_TCP)
+            {
+                return ProtocolType.Tcp;
+            }
+            else if (protocolType == IPPROTO_UDP)
+            {
+                return ProtocolType.Udp;
+            }
+            else
+            {
+                throw new NotSupportedException($"Unknown protocol type: SO_PROTOCOL={protocolType}.");
             }
         }
     }

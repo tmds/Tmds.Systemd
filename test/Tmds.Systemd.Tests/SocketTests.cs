@@ -82,6 +82,9 @@ namespace Tmds.Systemd.Tests
                 Socket[] sockets = fds.GetListenSockets(fds[0], fds.Count);
                 foreach (Socket server in sockets)
                 {
+                    Assert.Equal(server.SocketType, SocketType.Stream);
+                    Assert.Equal(server.AddressFamily, AddressFamily.InterNetwork);
+                    Assert.Equal(server.ProtocolType, ProtocolType.Tcp);
                     using (var client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
                     {
                         client.Connect(server.LocalEndPoint);
