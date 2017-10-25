@@ -22,14 +22,16 @@ namespace Tmds.Systemd
         [DllImport("libc", SetLastError=true)]
         internal static extern int fcntl(int fd, int cmd, int val);
 
+        const int SOL_SOCKET = 1;
         
         const int SO_TYPE = 3;
         const int SO_PROTOCOL = 38;
         const int SO_DOMAIN = 39;
+        const int SO_ACCEPTCONM = 30;
+
         const int AF_INET = 2;
         const int AF_INET6 = 10;
         const int AF_UNIX = 1;
-        const int SOL_SOCKET = 1;
 
         const int SOCK_STREAM = 1;
         const int SOCK_DGRAM = 2;
@@ -95,7 +97,8 @@ namespace Tmds.Systemd
             var socket = reflectionMethods.SocketConstructor.Invoke(new[] { safeCloseSocket });
 
             // private bool _isListening = false;
-            reflectionMethods.IsListening.SetValue(socket, true);
+            bool listening = GetSockOpt(fd, SO_ACCEPTCONM) != 0;
+            reflectionMethods.IsListening.SetValue(socket, listening);
 
             EndPoint endPoint;
             AddressFamily addressFamily = ConvertAddressFamily(GetSockOpt(fd, SO_DOMAIN));
