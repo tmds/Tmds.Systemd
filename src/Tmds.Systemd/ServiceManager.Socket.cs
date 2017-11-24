@@ -191,8 +191,14 @@ namespace Tmds.Systemd
                 ThrowNotSupported(nameof(protocolType));
             }
 
-            Assembly pipeStreamAssembly = typeof(PipeStream).GetTypeInfo().Assembly;
-            Type unixDomainSocketEndPointType = pipeStreamAssembly.GetType("System.Net.Sockets.UnixDomainSocketEndPoint");
+            // .NET Core 2.1+
+            Type unixDomainSocketEndPointType = socketAssembly.GetType("System.Net.Sockets.UnixDomainSocketEndPoint");
+            if (unixDomainSocketEndPointType == null)
+            {
+                // .NET Core 2.0
+                Assembly pipeStreamAssembly = typeof(PipeStream).GetTypeInfo().Assembly;
+                unixDomainSocketEndPointType = pipeStreamAssembly.GetType("System.Net.Sockets.UnixDomainSocketEndPoint");
+            }
             if (unixDomainSocketEndPointType == null)
             {
                 ThrowNotSupported(nameof(unixDomainSocketEndPointType));
