@@ -101,7 +101,7 @@ namespace Tmds.Systemd
             return _data;
         }
 
-        internal bool IsEmpty => _currentSegment == null;
+        internal bool IsEmpty => _bytesWritten == 0 && _data.Count == 0;
 
         private void AppendCurrent()
         {
