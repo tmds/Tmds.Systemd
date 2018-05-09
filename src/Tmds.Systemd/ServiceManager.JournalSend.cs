@@ -19,6 +19,8 @@ namespace Tmds.Systemd
     [Flags]
     public enum LogFlags
     {
+        /// <summary>Specifies that a logging category should not write any messages.</summary>
+        None = 0,
         /// <summary>System is unusable.</summary>
         Emergency = 1,
         /// <summary>Action must be taken immediately.</summary>
@@ -32,7 +34,7 @@ namespace Tmds.Systemd
         /// <summary>Normal but significant conditions.</summary>
         Notice = 6,
         /// <summary>Informational.</summary>
-        Info = 7,
+        Information = 7,
         /// <summary>Debug-level messages.</summary>
         Debug = 8
     }
