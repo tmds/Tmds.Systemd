@@ -26,6 +26,7 @@ namespace Tmds.Systemd
         private readonly char[] _charBuffer;
         private byte[] _currentSegment;
         private int _bytesWritten;
+        private bool _isEnabled;
 
         private JournalMessage()
         {
@@ -41,8 +42,7 @@ namespace Tmds.Systemd
             Clear();
         }
 
-        /// <summary>Obtain a cleared JournalMessage. The Message must be Disposed to return it.</summary>
-        public static JournalMessage Get()
+        internal static JournalMessage Get(bool isEnabled)
         {
             JournalMessage message = s_cachedMessage;
             if (message == null)
@@ -54,12 +54,19 @@ namespace Tmds.Systemd
                 s_cachedMessage = null;
             }
 
+            message._isEnabled = isEnabled;
+
             return message;
         }
 
         /// <summary>Adds a field to the message.</summary>
         public void Append(string name, object value)
         {
+            if (!_isEnabled)
+            {
+                return;
+            }
+
             // Field name
             AppendString(name.AsSpan());
 

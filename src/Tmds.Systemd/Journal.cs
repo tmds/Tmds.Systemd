@@ -28,14 +28,20 @@ namespace Tmds.Systemd
         private static GCHandle[] s_gcHandles;
 
         private static Socket s_journalSocket;
-        private static bool s_hasJournal = true;
+        private static bool IsEnabled = File.Exists(JournalSocketPath);
 
         /// <summary>The syslog identifier string added to each message.</summary>
         public static string SyslogIdentifier { get; set; } = "dotnet";
 
+        /// <summary>Obtain a cleared JournalMessage. The Message must be Disposed to return it.</summary>
+        public static JournalMessage GetJournalMessage()
+        {
+            return JournalMessage.Get(IsEnabled);
+        }
+
         private static Socket GetJournalSocket()
         {
-            if (!s_hasJournal)
+            if (!IsEnabled)
             {
                 return null;
             }
@@ -45,15 +51,11 @@ namespace Tmds.Systemd
                 Socket journalSocket = Volatile.Read(ref s_journalSocket);
                 if (journalSocket == null)
                 {
-                    s_hasJournal = File.Exists(JournalSocketPath);
-                    if (s_hasJournal)
+                    journalSocket = new Socket(AddressFamily.Unix, SocketType.Dgram, ProtocolType.Unspecified);
+                    journalSocket.Connect(new UnixDomainSocketEndPoint(JournalSocketPath));
+                    if (Interlocked.CompareExchange(ref s_journalSocket, journalSocket, null) != null)
                     {
-                        journalSocket = new Socket(AddressFamily.Unix, SocketType.Dgram, ProtocolType.Unspecified);
-                        journalSocket.Connect(new UnixDomainSocketEndPoint(JournalSocketPath));
-                        if (Interlocked.CompareExchange(ref s_journalSocket, journalSocket, null) != null)
-                        {
-                            journalSocket.Dispose();
-                        }
+                        journalSocket.Dispose();
                     }
                 }
             }
