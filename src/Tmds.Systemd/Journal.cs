@@ -34,7 +34,7 @@ namespace Tmds.Systemd
         public static string SyslogIdentifier { get; set; } = "dotnet";
 
         /// <summary>Obtain a cleared JournalMessage. The Message must be Disposed to return it.</summary>
-        public static JournalMessage GetJournalMessage()
+        public static JournalMessage GetMessage()
         {
             return JournalMessage.Get(IsEnabled);
         }
