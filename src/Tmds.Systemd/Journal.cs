@@ -63,21 +63,6 @@ namespace Tmds.Systemd
         /// <summary>
         /// Submit a log entry to the journal.
         /// </summary>
-        public static void Log(LogFlags flags, IReadOnlyList<KeyValuePair<string, object>> fields)
-        {
-            using (var message = JournalMessage.Get())
-            {
-                foreach (var field in fields)
-                {
-                    message.Append(field.Key, field.Value);
-                }
-                Log(flags, message);
-            }
-        }
-
-        /// <summary>
-        /// Submit a log entry to the journal.
-        /// </summary>
         public static unsafe void Log(LogFlags flags, JournalMessage message)
         {
             if (message.IsEmpty)
@@ -131,7 +116,7 @@ namespace Tmds.Systemd
                     int rv = sendmsg(socket.Handle.ToInt32(), &msg, 0).ToInt32();
                     if (rv < 0)
                     {
-                        var errno = Marshal.GetLastWin32Error();
+                        int errno = Marshal.GetLastWin32Error();
                         if (errno == EINTR)
                         {
                             loop = true;
