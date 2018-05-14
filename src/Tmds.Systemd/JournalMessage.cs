@@ -28,6 +28,9 @@ namespace Tmds.Systemd
         private int _bytesWritten;
         private bool _isEnabled;
 
+        /// <summary>Returns whether the this message can store data.</summary>
+        public bool IsEnabled => _isEnabled;
+
         private JournalMessage()
         {
             _data = new List<ArraySegment<byte>>();

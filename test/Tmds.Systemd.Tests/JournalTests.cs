@@ -80,6 +80,29 @@ namespace Tmds.Systemd.Tests
             };
         }
 
+        [Fact]
+        public void Log()
+        {
+            // -- No Journal --
+            string nonExisting = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            Journal.ConfigureJournalSocket(nonExisting);
+
+            // Journal is not available
+            Assert.False(Journal.IsAvailable);
+            using (var message = Journal.GetMessage())
+            {
+                // Message is not enabled
+                Assert.False(message.IsEnabled);
+
+                // Append is a noop
+                message.Append("Field", "Value");
+                Assert.Equal(0, message.GetData().Count);
+
+                // This shouldn't throw.
+                Journal.Log(LogFlags.Information, message);
+            }
+        }
+
         private static Dictionary<string, string> ReadFields(JournalMessage message)
         {
             var fields = new Dictionary<string, string>();

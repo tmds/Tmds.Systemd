@@ -18,7 +18,6 @@ namespace Tmds.Systemd
     /// </summary>
     public partial class Journal
     {
-        private const string JournalSocketPath = "/run/systemd/journal/socket";
         private const int MaxIovs = 100;
         private const int EINTR = 4;
 
@@ -28,7 +27,28 @@ namespace Tmds.Systemd
         private static GCHandle[] s_gcHandles;
 
         private static Socket s_journalSocket;
-        private static bool IsEnabled = File.Exists(JournalSocketPath);
+        private static string s_journalSocketPath = "/run/systemd/journal/socket";
+        private static bool? s_isAvailable = true;
+
+        // for testing
+        internal static void ConfigureJournalSocket(string journalSocketPath)
+        {
+            s_isAvailable = null;
+            s_journalSocketPath = journalSocketPath;
+        }
+
+        /// <summary>Returns whether the journal service is available.</summary>
+        public static bool IsAvailable
+        {
+            get
+            {
+                if (s_isAvailable == null)
+                {
+                    s_isAvailable = File.Exists(s_journalSocketPath);
+                }
+                return s_isAvailable.Value;
+            }
+        }
 
         /// <summary>The syslog identifier string added to each message.</summary>
         public static string SyslogIdentifier { get; set; } = "dotnet";
@@ -36,12 +56,12 @@ namespace Tmds.Systemd
         /// <summary>Obtain a cleared JournalMessage. The Message must be Disposed to return it.</summary>
         public static JournalMessage GetMessage()
         {
-            return JournalMessage.Get(IsEnabled);
+            return JournalMessage.Get(IsAvailable);
         }
 
         private static Socket GetJournalSocket()
         {
-            if (!IsEnabled)
+            if (!IsAvailable)
             {
                 return null;
             }
@@ -52,7 +72,7 @@ namespace Tmds.Systemd
                 if (journalSocket == null)
                 {
                     journalSocket = new Socket(AddressFamily.Unix, SocketType.Dgram, ProtocolType.Unspecified);
-                    journalSocket.Connect(new UnixDomainSocketEndPoint(JournalSocketPath));
+                    journalSocket.Connect(new UnixDomainSocketEndPoint(s_journalSocketPath));
                     if (Interlocked.CompareExchange(ref s_journalSocket, journalSocket, null) != null)
                     {
                         journalSocket.Dispose();
