@@ -6,6 +6,7 @@ using System.IO;
 using System.Text;
 using Xunit;
 using Tmds.Systemd;
+using System.Threading;
 
 namespace Tmds.Systemd.Tests
 {
@@ -15,6 +16,8 @@ namespace Tmds.Systemd.Tests
         [MemberData(nameof(GetSerializationData))]
         public void Serialization(Dictionary<string, object> serializedFields)
         {
+            CultureInfo originalCulture = Thread.CurrentThread.CurrentCulture;
+            Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("nl-BE");
             Dictionary<string, string> deserializedFields;
             using (var message = CreateJournalMessage())
             {
@@ -24,6 +27,7 @@ namespace Tmds.Systemd.Tests
                 }
                 deserializedFields = ReadFields(message);
             }
+            Thread.CurrentThread.CurrentCulture = originalCulture;
 
             Assert.Equal(serializedFields.Count, deserializedFields.Count);
             foreach (var serializedValue in serializedFields)
@@ -76,6 +80,22 @@ namespace Tmds.Systemd.Tests
                 new Dictionary<string, object>()
                 {
                     { "FIELD1", new object[] { new[] {10, 20}, 20 }}
+                },
+            };
+            yield return new object[]
+            {
+                // Culture
+                new Dictionary<string, object>()
+                {
+                    { "FIELD1", 10.5} // Formats as 10,5 in nl-BE culture
+                },
+            };
+            yield return new object[]
+            {
+                // Culture in Enumerable
+                new Dictionary<string, object>()
+                {
+                    { "FIELD1", new[] { 10.5 } } // Formats as 10,5 in nl-BE culture
                 },
             };
         }
