@@ -143,6 +143,7 @@ namespace Tmds.Systemd
             {
                 ArrayPool<byte>.Shared.Return(segment.Array);
             }
+            _data.Clear();
         }
 
         /// <summary>Returns the JournalMessage.</summary>
