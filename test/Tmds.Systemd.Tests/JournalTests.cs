@@ -105,11 +105,11 @@ namespace Tmds.Systemd.Tests
         {
             // -- No Journal --
             string nonExisting = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            Journal.ConfigureJournalSocket(nonExisting);
+            ServiceManager.ConfigureJournalSocket(nonExisting);
 
             // Journal is not available
-            Assert.False(Journal.IsAvailable);
-            using (var message = Journal.GetMessage())
+            Assert.False(ServiceManager.IsJournalAvailable);
+            using (var message = ServiceManager.GetJournalMessage())
             {
                 // Message is not enabled
                 Assert.False(message.IsEnabled);
@@ -119,7 +119,7 @@ namespace Tmds.Systemd.Tests
                 Assert.Equal(0, message.GetData().Count);
 
                 // This shouldn't throw.
-                Journal.Log(LogFlags.Information, message);
+                ServiceManager.Log(LogFlags.Information, message);
             }
         }
 
