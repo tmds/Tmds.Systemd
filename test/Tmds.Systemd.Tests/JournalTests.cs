@@ -7,6 +7,7 @@ using System.Text;
 using Xunit;
 using Tmds.Systemd;
 using System.Threading;
+using System.Net.Sockets;
 
 namespace Tmds.Systemd.Tests
 {
@@ -103,7 +104,12 @@ namespace Tmds.Systemd.Tests
         [Fact]
         public void Log()
         {
-            // -- No Journal --
+            TestLogNonExisting();
+            TestLogExisting();
+        }
+
+        private void TestLogNonExisting()
+        {
             string nonExisting = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             ServiceManager.ConfigureJournalSocket(nonExisting);
 
@@ -115,7 +121,7 @@ namespace Tmds.Systemd.Tests
                 Assert.False(message.IsEnabled);
 
                 // Append is a noop
-                message.Append("Field", "Value");
+                message.Append("FIELD", "Value");
                 Assert.Equal(0, message.GetData().Count);
 
                 // This shouldn't throw.
@@ -123,13 +129,89 @@ namespace Tmds.Systemd.Tests
             }
         }
 
+        private void TestLogExisting()
+        {
+            string socketPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            using (Socket serverSocket = new Socket(AddressFamily.Unix, SocketType.Dgram, ProtocolType.Unspecified))
+            {
+                serverSocket.Blocking = false;
+                serverSocket.Bind(new UnixDomainSocketEndPoint(socketPath));
+                ServiceManager.ConfigureJournalSocket(socketPath);
+
+                // Journal is available
+                Assert.True(ServiceManager.IsJournalAvailable);
+
+                TestSimpleMessage(serverSocket);
+
+                TestLongMessage(serverSocket);
+            }
+        }
+
+        private void TestSimpleMessage(Socket serverSocket)
+        {
+            using (var message = ServiceManager.GetJournalMessage())
+            {
+                // Message is enabled
+                Assert.True(message.IsEnabled);
+
+                message.Append("FIELD", "Value");
+
+                // This shouldn't throw.
+                ServiceManager.Log(LogFlags.Information, message);
+
+                var fields = ReadFields(serverSocket);
+                Assert.Equal(3, fields.Count);
+                Assert.Equal("Value", fields["FIELD"]);
+                Assert.Equal("6", fields["PRIORITY"]);
+                Assert.Equal(ServiceManager.SyslogIdentifier, fields["SYSLOG_IDENTIFIER"]);
+            }
+        }
+
+        private void TestLongMessage(Socket serverSocket)
+        {
+            using (var message = ServiceManager.GetJournalMessage())
+            {
+                const int fieldCount = 15;
+                string valueSuffix = new string('x', 4096);
+                for (int i = 0; i < fieldCount; i++)
+                {
+                    message.Append($"FIELD{i}", $"{i} " + valueSuffix);
+                }
+
+                ServiceManager.Log(LogFlags.Information, message);
+
+                var fields = ReadFields(serverSocket);
+                Assert.Equal(fieldCount + 2, fields.Count);
+                for (int i = 0; i < fieldCount; i++)
+                {
+                    Assert.Equal($"{i} " + valueSuffix, fields[$"FIELD{i}"]);
+                }
+            }
+        }
+
+        private static Dictionary<string, string> ReadFields(Socket socket)
+        {
+            var datas = new List<ArraySegment<byte>>();
+            int length = socket.Available;
+            if (length > 0)
+            {
+                byte[] data = new byte[length];
+                int bytesReceived = socket.Receive(data);
+                datas.Add(new ArraySegment<byte>(data, 0, bytesReceived));
+            }
+            return ReadFields(datas);
+        }
+
         private static Dictionary<string, string> ReadFields(JournalMessage message)
+            => ReadFields(message.GetData());
+
+        private static Dictionary<string, string> ReadFields(List<ArraySegment<byte>> datas)
         {
             var fields = new Dictionary<string, string>();
             byte[] bytes;
             using (var memoryStream = new MemoryStream())
             {
-                foreach (var data in message.GetData())
+                foreach (var data in datas)
                 {
                     memoryStream.Write(data.Array, data.Offset, data.Count);
                 }

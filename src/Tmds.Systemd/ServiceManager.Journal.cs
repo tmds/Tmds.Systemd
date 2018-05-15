@@ -15,13 +15,8 @@ namespace Tmds.Systemd
 
     public partial class ServiceManager
     {
-        private const int MaxIovs = 100;
+        private const int MaxIovs = 20;
         private const int EINTR = 4;
-
-        [ThreadStatic]
-        private static IOVector[] s_iovs;
-        [ThreadStatic]
-        private static GCHandle[] s_gcHandles;
 
         private static Socket s_journalSocket;
         private static string s_journalSocketPath = "/run/systemd/journal/socket";
@@ -107,16 +102,14 @@ namespace Tmds.Systemd
 
             List<ArraySegment<byte>> data = message.GetData();
             int dataLength = data.Count;
-            Span<IOVector> iovs = stackalloc IOVector[dataLength <= MaxIovs ? dataLength : 0];
-            if (iovs.IsEmpty)
+            if (dataLength > MaxIovs)
             {
-                iovs = GetHeapIovs(dataLength);
+                // We should handle this the same way as EMSGSIZE, which we don't handle atm.
+                ErrorWhileLogging("size exceeded");
+                return;
             }
-            Span<GCHandle> handles = stackalloc GCHandle[dataLength <= MaxIovs ? dataLength : 0];
-            if (handles.IsEmpty)
-            {
-                handles = GetHeapHandles(dataLength);
-            }
+            Span<IOVector> iovs = stackalloc IOVector[dataLength];
+            Span<GCHandle> handles = stackalloc GCHandle[dataLength];
             for (int i = 0; i < data.Count; i++)
             {
                 handles[i] = GCHandle.Alloc(data[i].Array, GCHandleType.Pinned);
@@ -142,7 +135,7 @@ namespace Tmds.Systemd
                         }
                         else
                         {
-                            Console.WriteLine($"Error writing message to journal: errno={errno}.");
+                            ErrorWhileLogging($"errno={errno}");
                         }
                     }
                 } while (loop);
@@ -153,22 +146,9 @@ namespace Tmds.Systemd
             }
         }
 
-        private static Span<IOVector> GetHeapIovs(int length)
+        private static void ErrorWhileLogging(string cause)
         {
-            if (s_iovs == null || s_iovs.Length < length)
-            {
-                s_iovs = new IOVector[length];
-            }
-            return new Span<IOVector>(s_iovs, 0, length);
-        }
-
-        private static Span<GCHandle> GetHeapHandles(int length)
-        {
-            if (s_gcHandles == null || s_gcHandles.Length < length)
-            {
-                s_gcHandles = new GCHandle[length];
-            }
-            return new Span<GCHandle>(s_gcHandles, 0, length);
+            Console.WriteLine($"Error writing message to journal: {cause}");
         }
 
         private unsafe struct IOVector
