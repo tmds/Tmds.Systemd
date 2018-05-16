@@ -6,13 +6,18 @@
     <Description>Tmds.Systemd Library</Description>
     <VersionPrefix>0.3.0</VersionPrefix>
     <Authors>Tom Deseyn</Authors>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageTags>systemd</PackageTags>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/tmds/Tmds.Systemd</RepositoryUrl>
     <PackageLicenseUrl>https://raw.githubusercontent.com/tmds/Tmds.Systemd/master/COPYING</PackageLicenseUrl>
     <Copyright>Tom Deseyn</Copyright>
+    <LangVersion>7.2</LangVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Memory" Version="4.5.0-rc1"/>
+  </ItemGroup>
 
 </Project>
