@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions.Internal;
 
@@ -91,7 +92,11 @@ namespace Tmds.Systemd.Logging
             {
                 using (var logMessage = ServiceManager.GetJournalMessage())
                 {
-                    // TODO: add eventId, state, scopes
+                    logMessage.Append("LOGGER", Name);
+                    if (eventId.Id != 0 || eventId.Name != null)
+                    {
+                        logMessage.Append("EVENTID", eventId.Id);
+                    }
                     if (exception != null)
                     {
                         logMessage.Append("EXCEPTION", exception.Message);
@@ -100,8 +105,37 @@ namespace Tmds.Systemd.Logging
                     {
                         logMessage.Append("MESSAGE", message);
                     }
+                    var scopeProvider = ScopeProvider;
+                    if (scopeProvider != null)
+                    {
+                        scopeProvider.ForEachScope((scope, msg) => AppendScope(scope, msg), logMessage);
+                    }
+                    if (state != null)
+                    {
+                        AppendState("STATE", state, logMessage);
+                    }
                     ServiceManager.Log(flags, logMessage);
                 }
+            }
+        }
+
+        private static void AppendScope(object scope, JournalMessage message)
+            => AppendState("SCOPE", scope, message);
+
+        private static void AppendState(string fieldName, object state, JournalMessage message)
+        {
+            if (state is IReadOnlyList<KeyValuePair<string, object>> keyValuePairs)
+            {
+                for (int i = 0; i < keyValuePairs.Count; i++)
+                {
+                    var pair = keyValuePairs[i];
+                    // TODO: ensure pair.Key matches field name requirements.
+                    message.Append(pair.Key.ToUpper(), pair.Value);
+                }
+            }
+            else
+            {
+                message.Append(fieldName, state);
             }
         }
     }
