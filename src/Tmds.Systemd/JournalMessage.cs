@@ -63,11 +63,11 @@ namespace Tmds.Systemd
         }
 
         /// <summary>Adds a field to the message.</summary>
-        public void Append(string name, object value)
+        public JournalMessage Append(string name, object value)
         {
             if (!_isEnabled)
             {
-                return;
+                return this;
             }
 
             // Field name
@@ -88,6 +88,8 @@ namespace Tmds.Systemd
 
             // Separator
             AppendChar('\n');
+
+            return this;
         }
 
         private int AppendObject(object value, bool checkEnumerable = true)
