@@ -112,6 +112,10 @@ namespace Tmds.Systemd
             return Append(fieldName, value);
         }
 
+        /// <summary>Adds a field to the message.</summary>
+        public JournalMessage Append(LogFieldName name, object value)
+            => Append(name.AsSpan(), value);
+
         private JournalMessage Append(ReadOnlySpan<byte> name, object value)
         {
             if (!_isEnabled)
