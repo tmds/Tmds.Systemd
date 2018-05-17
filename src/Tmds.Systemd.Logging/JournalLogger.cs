@@ -1,20 +1,14 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions.Internal;
 
 namespace Tmds.Systemd.Logging
 {
     public class JournalLogger : ILogger
     {
-        private Func<string, LogLevel, bool> _filter;
+        private const string OriginalFormat = "{OriginalFormat}";
 
-        public JournalLogger(string name, Func<string, LogLevel, bool> filter, bool includeScopes)
-            : this(name, filter, includeScopes ? new LoggerExternalScopeProvider() : null)
-        {
-        }
-
-        internal JournalLogger(string name, Func<string, LogLevel, bool> filter, IExternalScopeProvider scopeProvider)
+        internal JournalLogger(string name, IExternalScopeProvider scopeProvider)
         {
             if (name == null)
             {
@@ -22,22 +16,7 @@ namespace Tmds.Systemd.Logging
             }
 
             Name = name;
-            Filter = filter ?? ((category, logLevel) => true);
             ScopeProvider = scopeProvider;
-        }
-
-        public Func<string, LogLevel, bool> Filter
-        {
-            get { return _filter; }
-            set
-            {
-                if (value == null)
-                {
-                    throw new ArgumentNullException(nameof(value));
-                }
-
-                _filter = value;
-            }
         }
 
         internal IExternalScopeProvider ScopeProvider { get; set; }
@@ -53,7 +32,7 @@ namespace Tmds.Systemd.Logging
                 return false;
             }
 
-            return Filter(Name, logLevel);
+            return true;
         }
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
@@ -138,12 +117,33 @@ namespace Tmds.Systemd.Logging
                 for (int i = 0; i < keyValuePairs.Count; i++)
                 {
                     var pair = keyValuePairs[i];
+                    if (pair.Key == OriginalFormat)
+                    {
+                        continue;
+                    }
                     message.Append(pair.Key, pair.Value);
                 }
             }
             else
             {
                 message.Append(fieldName, state);
+            }
+        }
+
+        /// <summary>
+        /// An empty scope without any logic
+        /// </summary>
+        public class NullScope : IDisposable
+        {
+            public static NullScope Instance { get; } = new NullScope();
+
+            private NullScope()
+            {
+            }
+
+            /// <inheritdoc />
+            public void Dispose()
+            {
             }
         }
     }
