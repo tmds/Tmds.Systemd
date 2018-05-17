@@ -70,8 +70,57 @@ namespace Tmds.Systemd
                 return this;
             }
 
+            const byte ReplacementChar = (byte)'X';
+
+            /* Don't allow names longer than 64 chars */
+            Span<byte> fieldName = stackalloc byte[64];
+            int offset = 0;
+            for (int i = 0; (i < name.Length && offset < 64); i++)
+            {
+                char c = name[i];
+                if (offset == 0 && c == '_')
+                {
+                    /* Variables starting with an underscore are protected */
+                    fieldName[offset++] = ReplacementChar;
+                }
+                else if (offset == 0 && char.IsDigit(c))
+                {
+                    /* Don't allow digits as first character */
+                    fieldName[offset++] = ReplacementChar;
+                    fieldName[offset++] = (byte)c;
+                }
+                else
+                {
+                    /* Only allow A-Z0-9 and '_' */
+                    if (char.IsDigit(c) || (c >= 'A' && c <='Z') || (c == '_'))
+                    {
+                        fieldName[offset++] = (byte)c;
+                    }
+                    else if (c >= 'a' && c <= 'z')
+                    {
+                        fieldName[offset++] = (byte)(c - 32); // To upper
+                    }
+                    else
+                    {
+                        fieldName[offset++] = ReplacementChar;
+                    }
+                }
+            }
+
+            fieldName = fieldName.Slice(0, offset);
+
+            return Append(fieldName, value);
+        }
+
+        private JournalMessage Append(ReadOnlySpan<byte> name, object value)
+        {
+            if (!_isEnabled)
+            {
+                return this;
+            }
+
             // Field name
-            AppendString(name.AsSpan());
+            AppendSpan(name);
 
             // Separator
             AppendChar('\n');
@@ -238,6 +287,19 @@ namespace Tmds.Systemd
             }
 
             return bytesWritten;
+        }
+
+        private void AppendSpan(ReadOnlySpan<byte> buffer)
+        {
+            while (buffer.Length > 0)
+            {
+                EnsureCapacity(1, desiredSize: buffer.Length);
+                Span<byte> destination = CurrentRemaining;
+                int bytesUsed = Math.Min(CurrentRemaining.Length, buffer.Length);
+                buffer.Slice(0, bytesUsed).CopyTo(destination);
+                buffer = buffer.Slice(bytesUsed);
+                _bytesWritten += bytesUsed;
+            }
         }
 
         private void EnsureCapacity(int minSize, int desiredSize = 0)

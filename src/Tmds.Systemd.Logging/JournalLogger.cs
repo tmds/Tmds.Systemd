@@ -129,8 +129,7 @@ namespace Tmds.Systemd.Logging
                 for (int i = 0; i < keyValuePairs.Count; i++)
                 {
                     var pair = keyValuePairs[i];
-                    // TODO: ensure pair.Key matches field name requirements.
-                    message.Append(pair.Key.ToUpper(), pair.Value);
+                    message.Append(pair.Key, pair.Value);
                 }
             }
             else
