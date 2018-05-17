@@ -32,7 +32,7 @@ namespace Tmds.Systemd.Logging
                 return false;
             }
 
-            return true;
+            return ServiceManager.IsJournalAvailable;
         }
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
