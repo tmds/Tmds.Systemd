@@ -100,6 +100,15 @@ namespace Tmds.Systemd.Logging
                     if (exception != null)
                     {
                         logMessage.Append("EXCEPTION", exception.Message);
+                        logMessage.Append("EXCEPTION_TYPE", exception.GetType().FullName);
+                        logMessage.Append("EXCEPTION_STACKTRACE", exception.StackTrace);
+                        Exception innerException = exception.InnerException;
+                        if (innerException != null)
+                        {
+                            logMessage.Append("INNEREXCEPTION", innerException.Message);
+                            logMessage.Append("INNEREXCEPTION_TYPE", innerException.GetType().FullName);
+                            logMessage.Append("INNEREXCEPTION_STACKTRACE", innerException.StackTrace);
+                        }
                     }
                     if (!string.IsNullOrEmpty(message))
                     {
