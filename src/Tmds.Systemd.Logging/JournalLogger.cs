@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Tmds.Systemd.Logging
 {
-    public class JournalLogger : ILogger
+    class JournalLogger : ILogger
     {
         private const string OriginalFormat = "{OriginalFormat}";
 
@@ -133,7 +133,7 @@ namespace Tmds.Systemd.Logging
         /// <summary>
         /// An empty scope without any logic
         /// </summary>
-        public class NullScope : IDisposable
+        class NullScope : IDisposable
         {
             public static NullScope Instance { get; } = new NullScope();
 

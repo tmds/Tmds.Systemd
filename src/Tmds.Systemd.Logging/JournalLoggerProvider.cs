@@ -4,8 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Tmds.Systemd.Logging
 {
-    [ProviderAlias("SystemdJournal")]
-    public class JournalLoggerProvider : ILoggerProvider, ISupportExternalScope
+    class JournalLoggerProvider : ILoggerProvider, ISupportExternalScope
     {
         private readonly ConcurrentDictionary<string, JournalLogger> _loggers = new ConcurrentDictionary<string, JournalLogger>();
         private IExternalScopeProvider _scopeProvider;
