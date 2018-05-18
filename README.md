@@ -7,6 +7,8 @@ Tmds.Systemd is a .NET Core library for interacting with systemd.
 
 ### Tmds.Systemd package
 
+This package supports .NET Core 2.0+.
+
 ```C#
 namespace Tmds.Systemd
 {
@@ -53,6 +55,8 @@ namespace Tmds.Systemd
 ### Tmds.Systemd.Logging package
 
 This package allows to easly add journal logging to an ASP.NET Core application by adding the following line to the host building step:
+
+This package supports .NET Core 2.1+.
 
 ```diff
          public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
