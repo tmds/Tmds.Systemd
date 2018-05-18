@@ -1,18 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Description>Tmds.Systemd Library</Description>
-    <VersionPrefix>0.3.0</VersionPrefix>
-    <Authors>Tom Deseyn</Authors>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Description>Library for interacting with systemd.</Description>
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageTags>systemd</PackageTags>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/tmds/Tmds.Systemd</RepositoryUrl>
-    <PackageLicenseUrl>https://raw.githubusercontent.com/tmds/Tmds.Systemd/master/COPYING</PackageLicenseUrl>
-    <Copyright>Tom Deseyn</Copyright>
     <LangVersion>7.2</LangVersion>
   </PropertyGroup>
 

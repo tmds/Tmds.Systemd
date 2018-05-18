@@ -1,7 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Description>Systemd journal logger provider implementation for Microsoft.Extensions.Logging.</Description>
     <TargetFramework>netcoreapp2.1</TargetFramework>
+    <PackageTags>systemd;logging</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

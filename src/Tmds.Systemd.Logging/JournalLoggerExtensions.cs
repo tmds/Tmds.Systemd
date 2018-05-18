@@ -5,6 +5,9 @@ using Tmds.Systemd.Logging;
 
 namespace Microsoft.Extensions.Logging
 {
+    /// <summary>
+    /// Extension methods for SystemdJournal logger.
+    /// </summary>
     public static class JournalLoggerExtensions
     {
         /// <summary>
