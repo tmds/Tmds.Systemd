@@ -65,18 +65,19 @@ namespace Tmds.Systemd
         /// <summary>Adds a field to the message.</summary>
         public JournalMessage Append(string name, object value)
         {
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
             if (!_isEnabled)
             {
                 return this;
             }
 
-            if (name == null)
-            {
-                throw new ArgumentNullException(nameof(name));
-            }
             if (value == null)
             {
-                value = "(null)";
+                return this;
             }
 
             const byte ReplacementChar = (byte)'X';
@@ -128,6 +129,10 @@ namespace Tmds.Systemd
         private JournalMessage Append(ReadOnlySpan<byte> name, object value)
         {
             if (!_isEnabled)
+            {
+                return this;
+            }
+            if (value == null)
             {
                 return this;
             }

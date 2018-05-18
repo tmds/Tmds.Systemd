@@ -8,6 +8,13 @@ namespace Tmds.Systemd
     /// </summary>
     public readonly struct LogFieldName : IEquatable<LogFieldName>
     {
+        /// <summary>Priority value.</summary>
+        public static readonly LogFieldName Priority = "PRIORITY";
+        /// <summary>Syslog identifier tag.</summary>
+        public static readonly LogFieldName SyslogIdentifier = "SYSLOG_IDENTIFIER";
+        /// <summary>Human readable message.</summary>
+        public static readonly LogFieldName Message = "MESSAGE";
+
         private readonly byte[] _data;
 
         /// <summary>Constructor</summary>
