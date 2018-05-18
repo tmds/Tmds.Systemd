@@ -70,6 +70,15 @@ namespace Tmds.Systemd
                 return this;
             }
 
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+            if (value == null)
+            {
+                value = "(null)";
+            }
+
             const byte ReplacementChar = (byte)'X';
 
             /* Don't allow names longer than 64 chars */
