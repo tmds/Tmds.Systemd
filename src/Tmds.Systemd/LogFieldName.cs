@@ -4,50 +4,45 @@ using System.Text;
 namespace Tmds.Systemd
 {
     /// <summary>
-    /// Valid log fieldname
+    /// Represents a valid journal field name.
     /// </summary>
     public readonly struct LogFieldName : IEquatable<LogFieldName>
     {
         private readonly byte[] _data;
 
-        /// <summary>Valid log fieldname</summary>
+        /// <summary>Constructor</summary>
         public LogFieldName(string name)
         {
             Validate(name);
             _data = Encoding.ASCII.GetBytes(name);
         }
 
-        /// <summary>Valid log fieldname</summary>
+        /// <summary>Length of the name.</summary>
         public int Length => _data.Length;
 
-        /// <summary>Valid log fieldname</summary>
-        public ReadOnlySpan<byte> AsSpan() => _data;
-
-        /// <summary>Valid log fieldname</summary>
+        /// <summary>Conversion to ReadOnlySpan.</summary>
         public static implicit operator ReadOnlySpan<byte>(LogFieldName str) => str._data;
-        /// <summary>Valid log fieldname</summary>
-        public static implicit operator byte[] (LogFieldName str) => str._data;
 
-        /// <summary>Valid log fieldname</summary>
+        /// <summary>Conversion from string.</summary>
         public static implicit operator LogFieldName(string str) => new LogFieldName(str);
 
-        /// <summary>Valid log fieldname</summary>
+        /// <summary>Returns the string representation of this name.</summary>
         public override string ToString() => Encoding.ASCII.GetString(_data);
-        /// <summary>Valid log fieldname</summary>
+        /// <summary>Conversion to string.</summary>
         public static explicit operator string(LogFieldName str) => str.ToString();
 
-        /// <summary>Valid log fieldname</summary>
+        /// <summary>Checks equality.</summary>
         public bool Equals(LogFieldName other) => ReferenceEquals(_data, other._data) || SequenceEqual(_data, other._data);
         private bool SequenceEqual(byte[] data1, byte[] data2) => new Span<byte>(data1).SequenceEqual(data2);
 
-        /// <summary>Valid log fieldname</summary>
+        /// <summary>Equality comparison.</summary>
         public static bool operator ==(LogFieldName a, LogFieldName b) => a.Equals(b);
-        /// <summary>Valid log fieldname</summary>
+        /// <summary>Inequality comparison.</summary>
         public static bool operator !=(LogFieldName a, LogFieldName b) => !a.Equals(b);
-        /// <summary>Valid log fieldname</summary>
+        /// <summary>Checks equality.</summary>
         public override bool Equals(object other) => (other is LogFieldName) && Equals((LogFieldName)other);
 
-        /// <summary>Valid log fieldname</summary>
+        /// <summary>Returns the hash code for this name.</summary>
         public override int GetHashCode()
         {
             // Copied from x64 version of string.GetLegacyNonRandomizedHashCode()
