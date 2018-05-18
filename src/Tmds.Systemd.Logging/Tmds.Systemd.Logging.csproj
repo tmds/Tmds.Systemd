@@ -1,16 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Description>Systemd journal logger provider implementation for Microsoft.Extensions.Logging.</Description>
-    <VersionPrefix>0.3.0</VersionPrefix>
-    <Authors>Tom Deseyn</Authors>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <PackageTags>systemd;logging</PackageTags>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/tmds/Tmds.Systemd</RepositoryUrl>
-    <PackageLicenseUrl>https://raw.githubusercontent.com/tmds/Tmds.Systemd/master/COPYING</PackageLicenseUrl>
-    <Copyright>Tom Deseyn</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
