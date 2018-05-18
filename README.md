@@ -67,6 +67,7 @@ This package supports .NET Core 2.1+.
 ```
 
 The logging added is **structured logging**. For example, these entries are stored for a GET request:
+
 ```json
 {
 	"PRIORITY" : "6",
@@ -97,8 +98,9 @@ The logging added is **structured logging**. For example, these entries are stor
 	"MESSAGE" : "Request finished in 10.9215ms 307 ",
 	"ELAPSEDMILLISECONDS" : "10.9215",
 }
-
 ```
+
+To follow the journal logging live you can use this command `journalctl -f -t dotnet -o json-pretty | grep -v \"_`.
 
 ## Example
 
