@@ -2,7 +2,7 @@
   <PropertyGroup>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <VersionPrefix>0.3.0</VersionPrefix>
+    <VersionPrefix>0.4.0</VersionPrefix>
     <Authors>Tom Deseyn</Authors>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/tmds/Tmds.Systemd</RepositoryUrl>
