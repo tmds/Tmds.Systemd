@@ -3,6 +3,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Xunit;
 using Tmds.Systemd;
@@ -106,6 +107,50 @@ namespace Tmds.Systemd.Tests
         {
             TestLogNonExisting();
             TestLogExisting();
+        }
+
+        [Theory]
+        [InlineData(null)] // null
+        [InlineData("")]   // empty
+        [InlineData("_")]  // starts with underscore
+        [InlineData("1")]  // starts with digit
+        [InlineData("AAAAAAAAAABBBBBBBBBBAAAAAAAAAABBBBBBBBBBAAAAAAAAAABBBBBBBBBBCCCCD")] // longer than 64 chars
+        [InlineData("a")]  // can only contain '[A-Z0-9'_]
+        [InlineData("~")]  // can only contain '[A-Z0-9'_]
+        public void LogFieldName_Invalid(string name)
+        {
+            Assert.ThrowsAny<ArgumentException>(() => new LogFieldName(name));
+        }
+
+        [Theory]
+        [InlineData("A")]   // letter A
+        [InlineData("Z")]   // letter Z
+        [InlineData("A_")]  // underscore
+        [InlineData("A0")]  // digit 0
+        [InlineData("A9")]  // digit 9
+        [InlineData("AAAAAAAAAABBBBBBBBBBAAAAAAAAAABBBBBBBBBBAAAAAAAAAABBBBBBBBBBCCCC")] // 64 chars
+        public void LogFieldName_Valid(string name)
+        {
+            LogFieldName fieldName = name;
+            Assert.Equal(fieldName.Length, name.Length);
+            Assert.Equal(fieldName.ToString(), name);
+        }
+
+        [Theory]
+        [InlineData("_", "X")]  // starts with underscore
+        [InlineData("1", "X1")]  // starts with digit
+        [InlineData("AAAAAAAAAABBBBBBBBBBAAAAAAAAAABBBBBBBBBBAAAAAAAAAABBBBBBBBBBCCCCD", "AAAAAAAAAABBBBBBBBBBAAAAAAAAAABBBBBBBBBBAAAAAAAAAABBBBBBBBBBCCCC")] // longer than 64 chars
+        [InlineData("a", "A")]  // can only contain '[A-Z0-9'_]
+        [InlineData("~", "X")]  // can only contain '[A-Z0-9'_]
+        public void JournalMessageFieldNameSanitation(string input, string expected)
+        {
+            using (var message = CreateJournalMessage())
+            {
+                message.Append(input, "value");
+                Dictionary<string, string> deserializedFields = ReadFields(message);
+                var readKey = deserializedFields.First().Key;
+                Assert.Equal(readKey, expected);
+            }
         }
 
         private void TestLogNonExisting()

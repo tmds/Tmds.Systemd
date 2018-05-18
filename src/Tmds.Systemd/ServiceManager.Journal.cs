@@ -93,11 +93,11 @@ namespace Tmds.Systemd
             int priority = (int)flags & 0xf;
             if (priority != 0)
             {
-                message.Append("PRIORITY", priority - 1);
+                message.Append(LogFieldName.Priority, priority - 1);
             }
             if (SyslogIdentifier != null)
             {
-                message.Append("SYSLOG_IDENTIFIER", SyslogIdentifier);
+                message.Append(LogFieldName.SyslogIdentifier, SyslogIdentifier);
             }
 
             List<ArraySegment<byte>> data = message.GetData();

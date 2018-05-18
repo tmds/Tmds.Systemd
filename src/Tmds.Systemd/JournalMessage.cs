@@ -65,7 +65,17 @@ namespace Tmds.Systemd
         /// <summary>Adds a field to the message.</summary>
         public JournalMessage Append(string name, object value)
         {
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
             if (!_isEnabled)
+            {
+                return this;
+            }
+
+            if (value == null)
             {
                 return this;
             }
@@ -112,9 +122,17 @@ namespace Tmds.Systemd
             return Append(fieldName, value);
         }
 
+        /// <summary>Adds a field to the message.</summary>
+        public JournalMessage Append(LogFieldName name, object value)
+            => Append((ReadOnlySpan<byte>)name, value);
+
         private JournalMessage Append(ReadOnlySpan<byte> name, object value)
         {
             if (!_isEnabled)
+            {
+                return this;
+            }
+            if (value == null)
             {
                 return this;
             }

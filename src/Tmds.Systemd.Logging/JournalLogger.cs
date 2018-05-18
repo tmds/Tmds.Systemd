@@ -6,6 +6,14 @@ namespace Tmds.Systemd.Logging
 {
     class JournalLogger : ILogger
     {
+        private static readonly LogFieldName Logger = "LOGGER";
+        private static readonly LogFieldName EventId = "EVENTID";
+        private static readonly LogFieldName Exception = "EXCEPTION";
+        private static readonly LogFieldName ExceptionType = "EXCEPTION_TYPE";
+        private static readonly LogFieldName ExceptionStackTrace = "EXCEPTION_STACKTRACE";
+        private static readonly LogFieldName InnerException = "INNEREXCEPTION";
+        private static readonly LogFieldName InnerExceptionType = "INNEREXCEPTION_TYPE";
+        private static readonly LogFieldName InnerExceptionStackTrace = "INNEREXCEPTION_STACKTRACE";
         private const string OriginalFormat = "{OriginalFormat}";
 
         internal JournalLogger(string name, IExternalScopeProvider scopeProvider)
@@ -71,27 +79,27 @@ namespace Tmds.Systemd.Logging
             {
                 using (var logMessage = ServiceManager.GetJournalMessage())
                 {
-                    logMessage.Append("LOGGER", Name);
+                    logMessage.Append(Logger, Name);
                     if (eventId.Id != 0 || eventId.Name != null)
                     {
-                        logMessage.Append("EVENTID", eventId.Id);
+                        logMessage.Append(EventId, eventId.Id);
                     }
                     if (exception != null)
                     {
-                        logMessage.Append("EXCEPTION", exception.Message);
-                        logMessage.Append("EXCEPTION_TYPE", exception.GetType().FullName);
-                        logMessage.Append("EXCEPTION_STACKTRACE", exception.StackTrace);
+                        logMessage.Append(Exception, exception.Message);
+                        logMessage.Append(ExceptionType, exception.GetType().FullName);
+                        logMessage.Append(ExceptionStackTrace, exception.StackTrace);
                         Exception innerException = exception.InnerException;
                         if (innerException != null)
                         {
-                            logMessage.Append("INNEREXCEPTION", innerException.Message);
-                            logMessage.Append("INNEREXCEPTION_TYPE", innerException.GetType().FullName);
-                            logMessage.Append("INNEREXCEPTION_STACKTRACE", innerException.StackTrace);
+                            logMessage.Append(InnerException, innerException.Message);
+                            logMessage.Append(InnerExceptionType, innerException.GetType().FullName);
+                            logMessage.Append(InnerExceptionStackTrace, innerException.StackTrace);
                         }
                     }
                     if (!string.IsNullOrEmpty(message))
                     {
-                        logMessage.Append("MESSAGE", message);
+                        logMessage.Append(LogFieldName.Message, message);
                     }
                     var scopeProvider = ScopeProvider;
                     if (scopeProvider != null)
