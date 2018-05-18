@@ -14,7 +14,7 @@ namespace Microsoft.Extensions.Logging
         /// Adds a journal logger named 'SystemdJournal' to the factory.
         /// </summary>
         /// <param name="builder">The <see cref="ILoggingBuilder"/> to use.</param>
-        public static ILoggingBuilder AddSystemdJournal(this ILoggingBuilder builder)
+        public static ILoggingBuilder AddJournal(this ILoggingBuilder builder)
         {
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, JournalLoggerProvider>());
             return builder;

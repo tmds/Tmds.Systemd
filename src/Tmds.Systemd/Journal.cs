@@ -13,7 +13,10 @@ namespace Tmds.Systemd
     using SizeT = System.UIntPtr;
     using SSizeT = System.IntPtr;
 
-    public partial class ServiceManager
+    /// <summary>
+    /// Interact with the journal service.
+    /// </summary>
+    public static class Journal
     {
         private const int MaxIovs = 20;
         private const int EINTR = 4;
@@ -30,7 +33,7 @@ namespace Tmds.Systemd
         }
 
         /// <summary>Returns whether the journal service is available.</summary>
-        public static bool IsJournalAvailable
+        public static bool IsAvailable
         {
             get
             {
@@ -46,14 +49,14 @@ namespace Tmds.Systemd
         public static string SyslogIdentifier { get; set; } = "dotnet";
 
         /// <summary>Obtain a cleared JournalMessage. The Message must be Disposed to return it.</summary>
-        public static JournalMessage GetJournalMessage()
+        public static JournalMessage GetMessage()
         {
-            return JournalMessage.Get(IsJournalAvailable);
+            return JournalMessage.Get(IsAvailable);
         }
 
         private static Socket GetJournalSocket()
         {
-            if (!IsJournalAvailable)
+            if (!IsAvailable)
             {
                 return null;
             }
@@ -93,11 +96,11 @@ namespace Tmds.Systemd
             int priority = (int)flags & 0xf;
             if (priority != 0)
             {
-                message.Append(LogFieldName.Priority, priority - 1);
+                message.Append(JournalFieldName.Priority, priority - 1);
             }
             if (SyslogIdentifier != null)
             {
-                message.Append(LogFieldName.SyslogIdentifier, SyslogIdentifier);
+                message.Append(JournalFieldName.SyslogIdentifier, SyslogIdentifier);
             }
 
             List<ArraySegment<byte>> data = message.GetData();

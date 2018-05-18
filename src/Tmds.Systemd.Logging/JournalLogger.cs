@@ -6,14 +6,14 @@ namespace Tmds.Systemd.Logging
 {
     class JournalLogger : ILogger
     {
-        private static readonly LogFieldName Logger = "LOGGER";
-        private static readonly LogFieldName EventId = "EVENTID";
-        private static readonly LogFieldName Exception = "EXCEPTION";
-        private static readonly LogFieldName ExceptionType = "EXCEPTION_TYPE";
-        private static readonly LogFieldName ExceptionStackTrace = "EXCEPTION_STACKTRACE";
-        private static readonly LogFieldName InnerException = "INNEREXCEPTION";
-        private static readonly LogFieldName InnerExceptionType = "INNEREXCEPTION_TYPE";
-        private static readonly LogFieldName InnerExceptionStackTrace = "INNEREXCEPTION_STACKTRACE";
+        private static readonly JournalFieldName Logger = "LOGGER";
+        private static readonly JournalFieldName EventId = "EVENTID";
+        private static readonly JournalFieldName Exception = "EXCEPTION";
+        private static readonly JournalFieldName ExceptionType = "EXCEPTION_TYPE";
+        private static readonly JournalFieldName ExceptionStackTrace = "EXCEPTION_STACKTRACE";
+        private static readonly JournalFieldName InnerException = "INNEREXCEPTION";
+        private static readonly JournalFieldName InnerExceptionType = "INNEREXCEPTION_TYPE";
+        private static readonly JournalFieldName InnerExceptionStackTrace = "INNEREXCEPTION_STACKTRACE";
         private const string OriginalFormat = "{OriginalFormat}";
 
         internal JournalLogger(string name, IExternalScopeProvider scopeProvider)
@@ -40,7 +40,7 @@ namespace Tmds.Systemd.Logging
                 return false;
             }
 
-            return ServiceManager.IsJournalAvailable;
+            return Journal.IsAvailable;
         }
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
@@ -77,7 +77,7 @@ namespace Tmds.Systemd.Logging
 
             if (!string.IsNullOrEmpty(message) || exception != null)
             {
-                using (var logMessage = ServiceManager.GetJournalMessage())
+                using (var logMessage = Journal.GetMessage())
                 {
                     logMessage.Append(Logger, Name);
                     if (eventId.Id != 0 || eventId.Name != null)
@@ -99,7 +99,7 @@ namespace Tmds.Systemd.Logging
                     }
                     if (!string.IsNullOrEmpty(message))
                     {
-                        logMessage.Append(LogFieldName.Message, message);
+                        logMessage.Append(JournalFieldName.Message, message);
                     }
                     var scopeProvider = ScopeProvider;
                     if (scopeProvider != null)
@@ -110,7 +110,7 @@ namespace Tmds.Systemd.Logging
                     {
                         AppendState("STATE", state, logMessage);
                     }
-                    ServiceManager.Log(flags, logMessage);
+                    Journal.Log(flags, logMessage);
                 }
             }
         }

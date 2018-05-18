@@ -1,22 +1,106 @@
 [![Travis](https://api.travis-ci.org/tmds/Tmds.Systemd.svg?branch=master)](https://travis-ci.org/tmds/Tmds.Systemd)
 [![NuGet](https://img.shields.io/nuget/v/Tmds.Systemd.svg)](https://www.nuget.org/packages/Tmds.Systemd)
 
-Tmds.Systemd is a netstandard library for interacting with systemd.
+Tmds.Systemd is a .NET Core library for interacting with systemd.
 
 ## Api
+
+### Tmds.Systemd package
+
+This package supports .NET Core 2.0+.
 
 ```C#
 namespace Tmds.Systemd
 {
-  class ServiceManager
+  static class ServiceManager
   {
     // Notify service manager about start-up completion and other service status changes.
-    public static bool Notify(ServiceState state, params ServiceState[] states);
+    bool Notify(ServiceState state, params ServiceState[] states);
     // Instantiate Sockets for the file descriptors passed by the service manager.
-    public static Socket[] GetListenSockets();
+    Socket[] GetListenSockets();
+  }
+  static class Journal
+  {
+    // Returns whether the journal service is available.
+    bool IsAvailable { get; }
+    // The syslog identifier string added to each log message.
+    SyslogIdentifier { get; set; } = "dotnet";
+    // Obtain a cleared JournalMessage. The Message must be Disposed to return it.
+    JournalMessage GetMessage();
+    // Submit a log entry to the journal.
+    void Log(LogFlags flags, JournalMessage message);
+  }
+  enum LogFlags
+  { None, Emergency, ..., Debug };
+  class JournalMessage : IDisposable
+  {
+    // Returns whether the journal service is available.
+    bool IsEnabled { get; }
+    // Appends a field to the message.
+    JournalMessage Append(string name, object value);
+    JournalMessage Append(JournalFieldName name, object value);
+  }
+  // Represents a valid journal field name.
+  struct JournalFieldName
+  {
+    static readonly JournalFieldName Priority;
+    static readonly JournalFieldName SyslogIdentifier;
+    static readonly JournalFieldName Message;
+    // Implicit conversion from string. Throws when name is not valid.
+    static implicit operator JournalFieldName(string str);
   }
 }
 ```
+
+### Tmds.Systemd.Logging package
+
+This package allows to easly add journal logging to an ASP.NET Core application by adding the following line to the host building step:
+
+This package supports .NET Core 2.1+.
+
+```diff
+         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
+             WebHost.CreateDefaultBuilder(args)
++            .ConfigureLogging(_ =>  _ .AddJournal())
+             .UseStartup<Startup>();
+     }
+```
+
+The logging added is **structured logging**. For example, these entries are stored for a GET request:
+
+```json
+{
+	"PRIORITY" : "6",
+	"SYSLOG_IDENTIFIER" : "dotnet",
+	"LOGGER" : "Microsoft.AspNetCore.Hosting.Internal.WebHost",
+	"EVENTID" : "1",
+	"MESSAGE" : "Request starting HTTP/1.1 GET http://localhost:5000/  ",
+	"PROTOCOL" : "HTTP/1.1",
+	"METHOD" : "GET",
+	"SCHEME" : "http",
+	"HOST" : "localhost:5000",
+	"PATHBASE" : "",
+	"PATH" : "/",
+	"QUERYSTRING" : "",
+	"REQUESTPATH" : "/",
+	"CONNECTIONID" : "0HLDSN5JGSU79",
+	"REQUESTID" : "0HLDSN5JGSU79:00000001",
+}
+{
+	"PRIORITY" : "6",
+	"SYSLOG_IDENTIFIER" : "dotnet",
+	"LOGGER" : "Microsoft.AspNetCore.Hosting.Internal.WebHost",
+	"EVENTID" : "2",
+	"STATUSCODE" : "307",
+	"REQUESTPATH" : "/",
+	"CONNECTIONID" : "0HLDSN5JGSU79",
+	"REQUESTID" : "0HLDSN5JGSU79:00000001",
+	"MESSAGE" : "Request finished in 10.9215ms 307 ",
+	"ELAPSEDMILLISECONDS" : "10.9215",
+}
+```
+
+To follow the journal logging live you can use this command `journalctl -f -t dotnet -o json-pretty | grep -v \"_`.
 
 ## Example
 
@@ -47,7 +131,7 @@ Add the package reference to `MyDaemon.csproj`.
     <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Tmds.Systemd" Version="0.1.0-*"/>
+    <PackageReference Include="Tmds.Systemd" Version="0.4.0-*"/>
   </ItemGroup>
 </Project>
 ```

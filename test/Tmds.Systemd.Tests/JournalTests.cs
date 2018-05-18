@@ -117,9 +117,9 @@ namespace Tmds.Systemd.Tests
         [InlineData("AAAAAAAAAABBBBBBBBBBAAAAAAAAAABBBBBBBBBBAAAAAAAAAABBBBBBBBBBCCCCD")] // longer than 64 chars
         [InlineData("a")]  // can only contain '[A-Z0-9'_]
         [InlineData("~")]  // can only contain '[A-Z0-9'_]
-        public void LogFieldName_Invalid(string name)
+        public void JournalFieldName_Invalid(string name)
         {
-            Assert.ThrowsAny<ArgumentException>(() => new LogFieldName(name));
+            Assert.ThrowsAny<ArgumentException>(() => new JournalFieldName(name));
         }
 
         [Theory]
@@ -129,9 +129,9 @@ namespace Tmds.Systemd.Tests
         [InlineData("A0")]  // digit 0
         [InlineData("A9")]  // digit 9
         [InlineData("AAAAAAAAAABBBBBBBBBBAAAAAAAAAABBBBBBBBBBAAAAAAAAAABBBBBBBBBBCCCC")] // 64 chars
-        public void LogFieldName_Valid(string name)
+        public void JournalFieldName_Valid(string name)
         {
-            LogFieldName fieldName = name;
+            JournalFieldName fieldName = name;
             Assert.Equal(fieldName.Length, name.Length);
             Assert.Equal(fieldName.ToString(), name);
         }
@@ -156,11 +156,11 @@ namespace Tmds.Systemd.Tests
         private void TestLogNonExisting()
         {
             string nonExisting = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            ServiceManager.ConfigureJournalSocket(nonExisting);
+            Journal.ConfigureJournalSocket(nonExisting);
 
             // Journal is not available
-            Assert.False(ServiceManager.IsJournalAvailable);
-            using (var message = ServiceManager.GetJournalMessage())
+            Assert.False(Journal.IsAvailable);
+            using (var message = Journal.GetMessage())
             {
                 // Message is not enabled
                 Assert.False(message.IsEnabled);
@@ -170,7 +170,7 @@ namespace Tmds.Systemd.Tests
                 Assert.Equal(0, message.GetData().Count);
 
                 // This shouldn't throw.
-                ServiceManager.Log(LogFlags.Information, message);
+                Journal.Log(LogFlags.Information, message);
             }
         }
 
@@ -181,10 +181,10 @@ namespace Tmds.Systemd.Tests
             {
                 serverSocket.Blocking = false;
                 serverSocket.Bind(new UnixDomainSocketEndPoint(socketPath));
-                ServiceManager.ConfigureJournalSocket(socketPath);
+                Journal.ConfigureJournalSocket(socketPath);
 
                 // Journal is available
-                Assert.True(ServiceManager.IsJournalAvailable);
+                Assert.True(Journal.IsAvailable);
 
                 TestSimpleMessage(serverSocket);
 
@@ -194,7 +194,7 @@ namespace Tmds.Systemd.Tests
 
         private void TestSimpleMessage(Socket serverSocket)
         {
-            using (var message = ServiceManager.GetJournalMessage())
+            using (var message = Journal.GetMessage())
             {
                 // Message is enabled
                 Assert.True(message.IsEnabled);
@@ -202,19 +202,19 @@ namespace Tmds.Systemd.Tests
                 message.Append("FIELD", "Value");
 
                 // This shouldn't throw.
-                ServiceManager.Log(LogFlags.Information, message);
+                Journal.Log(LogFlags.Information, message);
 
                 var fields = ReadFields(serverSocket);
                 Assert.Equal(3, fields.Count);
                 Assert.Equal("Value", fields["FIELD"]);
                 Assert.Equal("6", fields["PRIORITY"]);
-                Assert.Equal(ServiceManager.SyslogIdentifier, fields["SYSLOG_IDENTIFIER"]);
+                Assert.Equal(Journal.SyslogIdentifier, fields["SYSLOG_IDENTIFIER"]);
             }
         }
 
         private void TestLongMessage(Socket serverSocket)
         {
-            using (var message = ServiceManager.GetJournalMessage())
+            using (var message = Journal.GetMessage())
             {
                 const int fieldCount = 15;
                 string valueSuffix = new string('x', 4096);
@@ -223,7 +223,7 @@ namespace Tmds.Systemd.Tests
                     message.Append($"FIELD{i}", $"{i} " + valueSuffix);
                 }
 
-                ServiceManager.Log(LogFlags.Information, message);
+                Journal.Log(LogFlags.Information, message);
 
                 var fields = ReadFields(serverSocket);
                 Assert.Equal(fieldCount + 2, fields.Count);
