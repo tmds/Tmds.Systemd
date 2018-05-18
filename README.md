@@ -46,8 +46,8 @@ namespace Tmds.Systemd
     static readonly JournalFieldName Priority;
     static readonly JournalFieldName SyslogIdentifier;
     static readonly JournalFieldName Message;
-    // Creates a JournalFieldNames. Throws when name is not valid.
-    public JournalFieldName(string name);
+    // Implicit conversion from string. Throws when name is not valid.
+    static implicit operator JournalFieldName(string str);
   }
 }
 ```
