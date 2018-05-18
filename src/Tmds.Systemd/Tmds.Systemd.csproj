@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Description>Tmds.Systemd Library</Description>
+    <Description>Library for interacting with systemd.</Description>
     <VersionPrefix>0.3.0</VersionPrefix>
     <Authors>Tom Deseyn</Authors>
     <TargetFramework>netcoreapp2.0</TargetFramework>
