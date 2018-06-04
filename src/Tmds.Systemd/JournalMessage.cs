@@ -1,11 +1,13 @@
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Buffers.Text;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Tmds.Systemd
@@ -119,20 +121,28 @@ namespace Tmds.Systemd
 
             fieldName = fieldName.Slice(0, offset);
 
-            return Append(fieldName, value);
+            return AppendField(fieldName, value);
         }
 
         /// <summary>Appends a field to the message.</summary>
         public JournalMessage Append(JournalFieldName name, object value)
-            => Append((ReadOnlySpan<byte>)name, value);
-
-        private JournalMessage Append(ReadOnlySpan<byte> name, object value)
         {
-            if (!_isEnabled)
+            if (value == null)
             {
                 return this;
             }
-            if (value == null)
+
+            return AppendField((ReadOnlySpan<byte>)name, value);
+        }
+
+        /// <summary>Appends a field to the message.</summary>
+        public JournalMessage Append(JournalFieldName name, int value)
+            => AppendField((ReadOnlySpan<byte>)name, value);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe JournalMessage AppendField<T>(ReadOnlySpan<byte> name, T value)
+        {
+            if (!_isEnabled)
             {
                 return this;
             }
@@ -148,8 +158,15 @@ namespace Tmds.Systemd
             EnsureCapacity(8);
             Span<byte> valueLengthAt = CurrentRemaining;
             _bytesWritten += 8;
-            // value
-            int bytesWritten = AppendObject(value);
+            int bytesWritten;
+            if (typeof(T) == typeof(int))
+            {
+                bytesWritten = AppendInt(*(int*)Unsafe.AsPointer(ref value));
+            }
+            else
+            {
+                bytesWritten = AppendObject(value);
+            }
             // Fill in length
             BinaryPrimitives.WriteUInt64LittleEndian(valueLengthAt, (ulong)bytesWritten);
 
@@ -318,6 +335,14 @@ namespace Tmds.Systemd
                 buffer = buffer.Slice(bytesUsed);
                 _bytesWritten += bytesUsed;
             }
+        }
+
+        private int AppendInt(int value)
+        {
+            int bytesWritten;
+            EnsureCapacity(minSize: 11); // "-2147483648".Length
+            Utf8Formatter.TryFormat(value, CurrentRemaining, out bytesWritten);
+            return bytesWritten;
         }
 
         private void EnsureCapacity(int minSize, int desiredSize = 0)
