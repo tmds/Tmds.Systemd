@@ -339,10 +339,11 @@ namespace Tmds.Systemd
 
         private int AppendInt(int value)
         {
-            int bytesWritten;
+            int bytesUsed;
             EnsureCapacity(minSize: 11); // "-2147483648".Length
-            Utf8Formatter.TryFormat(value, CurrentRemaining, out bytesWritten);
-            return bytesWritten;
+            Utf8Formatter.TryFormat(value, CurrentRemaining, out bytesUsed);
+            _bytesWritten += bytesUsed;
+            return bytesUsed;
         }
 
         private void EnsureCapacity(int minSize, int desiredSize = 0)
