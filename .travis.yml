@@ -16,7 +16,7 @@ addons:
     - libicu52
 
 before_install:
-  - curl -sSL -o dotnet.tar.gz https://download.microsoft.com/download/B/1/9/B19A2F87-F00F-420C-B4B9-A0BA4403F754/dotnet-sdk-2.1.300-rc1-008673-linux-x64.tar.gz
+  - curl -sSL -o dotnet.tar.gz https://download.microsoft.com/download/8/8/5/88544F33-836A-49A5-8B67-451C24709A8F/dotnet-sdk-2.1.300-linux-x64.tar.gz
   - sudo mkdir -p /opt/dotnet && sudo tar zxf dotnet.tar.gz -C /opt/dotnet
   - sudo ln -s /opt/dotnet/dotnet /usr/local/bin
 
