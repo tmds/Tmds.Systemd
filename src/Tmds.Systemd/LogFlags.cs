@@ -25,6 +25,8 @@ namespace Tmds.Systemd
         /// <summary>Informational.</summary>
         Information = 7,
         /// <summary>Debug-level messages.</summary>
-        Debug = 8
+        Debug = 8,
+        /// <summary>Drop the message instead of blocking.</summary>
+        DropWhenBusy
     }
 }
