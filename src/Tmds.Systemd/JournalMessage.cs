@@ -17,6 +17,7 @@ namespace Tmds.Systemd
     {
         // If the buffer can't fit at least a character, the Encoder throws.
         private const int MaximumBytesPerUtf8Char = 4;
+        private const int MaxFieldLength = 64;
         private static Encoding s_encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
         [ThreadStatic]
@@ -67,6 +68,25 @@ namespace Tmds.Systemd
         /// <summary>Appends a field to the message.</summary>
         public JournalMessage Append(string name, object value)
         {
+            if (value == null)
+            {
+                return this;
+            }
+
+            Span<byte> fieldName = stackalloc byte[MaxFieldLength];
+
+            return AppendField(SanitizeFieldName(name, fieldName), value);
+        }
+
+        /// <summary>Appends a field to the message.</summary>
+        public JournalMessage Append(string name, int value)
+        {
+            Span<byte> fieldName = stackalloc byte[MaxFieldLength];
+            return AppendField(SanitizeFieldName(name, fieldName), value);
+        }
+
+        private ReadOnlySpan<byte> SanitizeFieldName(string name, Span<byte> fieldName)
+        {
             if (name == null)
             {
                 throw new ArgumentNullException(nameof(name));
@@ -74,18 +94,11 @@ namespace Tmds.Systemd
 
             if (!_isEnabled)
             {
-                return this;
-            }
-
-            if (value == null)
-            {
-                return this;
+                return default(Span<byte>);
             }
 
             const byte ReplacementChar = (byte)'X';
 
-            /* Don't allow names longer than 64 chars */
-            Span<byte> fieldName = stackalloc byte[64];
             int offset = 0;
             for (int i = 0; (i < name.Length && offset < 64); i++)
             {
@@ -121,7 +134,7 @@ namespace Tmds.Systemd
 
             fieldName = fieldName.Slice(0, offset);
 
-            return AppendField(fieldName, value);
+            return fieldName;
         }
 
         /// <summary>Appends a field to the message.</summary>
@@ -179,9 +192,14 @@ namespace Tmds.Systemd
         private int AppendObject(object value, bool checkEnumerable = true)
         {
             int bytesWritten = 0;
-            if (value is string) // Special-case string since it implements IEnumerable
+            Type type = value.GetType();
+            if (type == typeof(string)) // Special-case string since it implements IEnumerable
             {
                 bytesWritten = AppendString(((string)value).AsSpan());
+            }
+            else if (type == typeof(int))
+            {
+                bytesWritten = AppendInt((int)value);
             }
             else if (checkEnumerable && value is IEnumerable enumerable)
             {
