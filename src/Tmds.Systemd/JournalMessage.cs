@@ -1,11 +1,13 @@
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Buffers.Text;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Tmds.Systemd
@@ -15,6 +17,7 @@ namespace Tmds.Systemd
     {
         // If the buffer can't fit at least a character, the Encoder throws.
         private const int MaximumBytesPerUtf8Char = 4;
+        private const int MaxFieldLength = 64;
         private static Encoding s_encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
         [ThreadStatic]
@@ -65,6 +68,25 @@ namespace Tmds.Systemd
         /// <summary>Appends a field to the message.</summary>
         public JournalMessage Append(string name, object value)
         {
+            if (value == null)
+            {
+                return this;
+            }
+
+            Span<byte> fieldName = stackalloc byte[MaxFieldLength];
+
+            return AppendField(SanitizeFieldName(name, fieldName), value);
+        }
+
+        /// <summary>Appends a field to the message.</summary>
+        public JournalMessage Append(string name, int value)
+        {
+            Span<byte> fieldName = stackalloc byte[MaxFieldLength];
+            return AppendField(SanitizeFieldName(name, fieldName), value);
+        }
+
+        private ReadOnlySpan<byte> SanitizeFieldName(string name, Span<byte> fieldName)
+        {
             if (name == null)
             {
                 throw new ArgumentNullException(nameof(name));
@@ -72,18 +94,11 @@ namespace Tmds.Systemd
 
             if (!_isEnabled)
             {
-                return this;
-            }
-
-            if (value == null)
-            {
-                return this;
+                return default(Span<byte>);
             }
 
             const byte ReplacementChar = (byte)'X';
 
-            /* Don't allow names longer than 64 chars */
-            Span<byte> fieldName = stackalloc byte[64];
             int offset = 0;
             for (int i = 0; (i < name.Length && offset < 64); i++)
             {
@@ -119,20 +134,28 @@ namespace Tmds.Systemd
 
             fieldName = fieldName.Slice(0, offset);
 
-            return Append(fieldName, value);
+            return fieldName;
         }
 
         /// <summary>Appends a field to the message.</summary>
         public JournalMessage Append(JournalFieldName name, object value)
-            => Append((ReadOnlySpan<byte>)name, value);
-
-        private JournalMessage Append(ReadOnlySpan<byte> name, object value)
         {
-            if (!_isEnabled)
+            if (value == null)
             {
                 return this;
             }
-            if (value == null)
+
+            return AppendField((ReadOnlySpan<byte>)name, value);
+        }
+
+        /// <summary>Appends a field to the message.</summary>
+        public JournalMessage Append(JournalFieldName name, int value)
+            => AppendField((ReadOnlySpan<byte>)name, value);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe JournalMessage AppendField<T>(ReadOnlySpan<byte> name, T value)
+        {
+            if (!_isEnabled)
             {
                 return this;
             }
@@ -148,8 +171,15 @@ namespace Tmds.Systemd
             EnsureCapacity(8);
             Span<byte> valueLengthAt = CurrentRemaining;
             _bytesWritten += 8;
-            // value
-            int bytesWritten = AppendObject(value);
+            int bytesWritten;
+            if (typeof(T) == typeof(int))
+            {
+                bytesWritten = AppendInt(*(int*)Unsafe.AsPointer(ref value));
+            }
+            else
+            {
+                bytesWritten = AppendObject(value);
+            }
             // Fill in length
             BinaryPrimitives.WriteUInt64LittleEndian(valueLengthAt, (ulong)bytesWritten);
 
@@ -162,9 +192,14 @@ namespace Tmds.Systemd
         private int AppendObject(object value, bool checkEnumerable = true)
         {
             int bytesWritten = 0;
-            if (value is string) // Special-case string since it implements IEnumerable
+            Type type = value.GetType();
+            if (type == typeof(string)) // Special-case string since it implements IEnumerable
             {
                 bytesWritten = AppendString(((string)value).AsSpan());
+            }
+            else if (type == typeof(int))
+            {
+                bytesWritten = AppendInt((int)value);
             }
             else if (checkEnumerable && value is IEnumerable enumerable)
             {
@@ -318,6 +353,15 @@ namespace Tmds.Systemd
                 buffer = buffer.Slice(bytesUsed);
                 _bytesWritten += bytesUsed;
             }
+        }
+
+        private int AppendInt(int value)
+        {
+            int bytesUsed;
+            EnsureCapacity(minSize: 11); // "-2147483648".Length
+            Utf8Formatter.TryFormat(value, CurrentRemaining, out bytesUsed);
+            _bytesWritten += bytesUsed;
+            return bytesUsed;
         }
 
         private void EnsureCapacity(int minSize, int desiredSize = 0)

@@ -153,6 +153,32 @@ namespace Tmds.Systemd.Tests
             }
         }
 
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(-1)]
+        [InlineData(int.MaxValue)]
+        [InlineData(int.MinValue)]
+        public void AppendInt(int i)
+        {
+            using (var message = CreateJournalMessage())
+            {
+                message.Append((JournalFieldName)"A", (int)i);
+                message.Append((string)"B", (int)i);
+                message.Append((JournalFieldName)"C", (object)i);
+                message.Append((string)"D", (object)i);
+
+                Dictionary<string, string> deserializedFields = ReadFields(message);
+                Assert.Equal(4, deserializedFields.Count);
+
+                string expected = i.ToString(null, CultureInfo.InvariantCulture);
+                Assert.Equal(expected, deserializedFields["A"]);
+                Assert.Equal(expected, deserializedFields["B"]);
+                Assert.Equal(expected, deserializedFields["C"]);
+                Assert.Equal(expected, deserializedFields["D"]);
+            }
+        }
+
         private void TestLogNonExisting()
         {
             string nonExisting = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
