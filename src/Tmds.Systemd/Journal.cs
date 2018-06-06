@@ -20,6 +20,8 @@ namespace Tmds.Systemd
     {
         private const int MaxIovs = 20;
         private const int EINTR = 4;
+        private const int EAGAIN = 11;
+        private const int MSG_DONTWAIT = 0x40;
 
         private static Socket s_journalSocket;
         private static string s_journalSocketPath = "/run/systemd/journal/socket";
@@ -119,6 +121,11 @@ namespace Tmds.Systemd
                 iovs[i].Base = handles[i].AddrOfPinnedObject();
                 iovs[i].Length = new IntPtr(data[i].Count);
             }
+            int sendmsgFlags = 0;
+            if ((flags & LogFlags.DropWhenBusy) != 0)
+            {
+                sendmsgFlags |= MSG_DONTWAIT;
+            }
             fixed (IOVector* pIovs = &MemoryMarshal.GetReference(iovs))
             {
                 bool loop;
@@ -128,7 +135,7 @@ namespace Tmds.Systemd
                     msghdr msg;
                     msg.msg_iov = pIovs;
                     msg.msg_iovlen = (SizeT)dataLength;
-                    int rv = sendmsg(socket.Handle.ToInt32(), &msg, 0).ToInt32();
+                    int rv = sendmsg(socket.Handle.ToInt32(), &msg, sendmsgFlags).ToInt32();
                     if (rv < 0)
                     {
                         int errno = Marshal.GetLastWin32Error();
@@ -136,6 +143,8 @@ namespace Tmds.Systemd
                         {
                             loop = true;
                         }
+                        else if (errno == EAGAIN)
+                        { }
                         else
                         {
                             ErrorWhileLogging($"errno={errno}");

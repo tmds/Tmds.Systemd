@@ -16,7 +16,9 @@ namespace Tmds.Systemd.Logging
         private static readonly JournalFieldName InnerExceptionStackTrace = "INNEREXCEPTION_STACKTRACE";
         private const string OriginalFormat = "{OriginalFormat}";
 
-        internal JournalLogger(string name, IExternalScopeProvider scopeProvider)
+        private readonly LogFlags _additionalFlags;
+
+        internal JournalLogger(string name, IExternalScopeProvider scopeProvider, JournalLoggerOptions options)
         {
             if (name == null)
             {
@@ -25,6 +27,10 @@ namespace Tmds.Systemd.Logging
 
             Name = name;
             ScopeProvider = scopeProvider;
+            if (options.DropWhenBusy)
+            {
+                _additionalFlags |= LogFlags.DropWhenBusy;
+            }
         }
 
         internal IExternalScopeProvider ScopeProvider { get; set; }
@@ -74,6 +80,7 @@ namespace Tmds.Systemd.Logging
                 default:
                     throw new ArgumentOutOfRangeException(nameof(logLevel));
             }
+            flags |= _additionalFlags;
 
             if (!string.IsNullOrEmpty(message) || exception != null)
             {

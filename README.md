@@ -31,7 +31,12 @@ namespace Tmds.Systemd
     void Log(LogFlags flags, JournalMessage message);
   }
   enum LogFlags
-  { None, Emergency, ..., Debug };
+  { None,
+    // Log levels.
+    Emergency, ..., Debug,
+    // Drop message instead of blocking.
+    DropWhenBusy
+  };
   class JournalMessage : IDisposable
   {
     // Returns whether the journal service is available.
@@ -64,6 +69,15 @@ This package supports .NET Core 2.1+.
 +            .ConfigureLogging(_ =>  _ .AddJournal())
              .UseStartup<Startup>();
      }
+```
+
+The logging can be configured with the following options:
+```C#
+class JournalLoggerOptions
+{
+  // Drop messages instead of blocking.
+  bool DropWhenBusy { get; set; }
+}
 ```
 
 The logging added is **structured logging**. For example, these entries are stored for a GET request:
