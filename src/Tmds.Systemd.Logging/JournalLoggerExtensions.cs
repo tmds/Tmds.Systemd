@@ -2,6 +2,7 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Tmds.Systemd.Logging;
+using Tmds.Systemd;
 
 namespace Microsoft.Extensions.Logging
 {
@@ -16,7 +17,10 @@ namespace Microsoft.Extensions.Logging
         /// <param name="builder">The <see cref="ILoggingBuilder"/> to use.</param>
         public static ILoggingBuilder AddJournal(this ILoggingBuilder builder)
         {
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, JournalLoggerProvider>());
+            if (Journal.IsAvailable)
+            {
+                builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, JournalLoggerProvider>());
+            }
             return builder;
         }
 
