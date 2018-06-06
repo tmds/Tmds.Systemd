@@ -82,17 +82,17 @@ namespace Tmds.Systemd
         /// <summary>
         /// Submit a log entry to the journal.
         /// </summary>
-        public static unsafe void Log(LogFlags flags, JournalMessage message)
+        public static unsafe LogResult Log(LogFlags flags, JournalMessage message)
         {
-            if (message.IsEmpty)
-            {
-                return;
-            }
-
             Socket socket = GetJournalSocket();
             if (socket == null)
             {
-                return;
+                return LogResult.NotAvailable;
+            }
+
+            if (message.IsEmpty)
+            {
+                return LogResult.Success;
             }
 
             int priority = (int)flags & 0xf;
@@ -111,7 +111,7 @@ namespace Tmds.Systemd
             {
                 // We should handle this the same way as EMSGSIZE, which we don't handle atm.
                 ErrorWhileLogging("size exceeded");
-                return;
+                return LogResult.Size;
             }
             Span<IOVector> iovs = stackalloc IOVector[dataLength];
             Span<GCHandle> handles = stackalloc GCHandle[dataLength];
@@ -126,6 +126,7 @@ namespace Tmds.Systemd
             {
                 sendmsgFlags |= MSG_DONTWAIT;
             }
+            LogResult result = LogResult.Success;
             fixed (IOVector* pIovs = &MemoryMarshal.GetReference(iovs))
             {
                 bool loop;
@@ -144,9 +145,12 @@ namespace Tmds.Systemd
                             loop = true;
                         }
                         else if (errno == EAGAIN)
-                        { }
+                        {
+                            result = LogResult.Busy;
+                        }
                         else
                         {
+                            result = LogResult.UnknownError;
                             ErrorWhileLogging($"errno={errno}");
                         }
                     }
@@ -156,6 +160,7 @@ namespace Tmds.Systemd
             {
                 handles[i].Free();
             }
+            return result;
         }
 
         private static void ErrorWhileLogging(string cause)

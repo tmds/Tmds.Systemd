@@ -28,7 +28,7 @@ namespace Tmds.Systemd
     // Obtain a cleared JournalMessage. The Message must be Disposed to return it.
     JournalMessage GetMessage();
     // Submit a log entry to the journal.
-    void Log(LogFlags flags, JournalMessage message);
+    LogResult Log(LogFlags flags, JournalMessage message);
   }
   enum LogFlags
   { None,
@@ -36,7 +36,9 @@ namespace Tmds.Systemd
     Emergency, ..., Debug,
     // Drop message instead of blocking.
     DropWhenBusy
-  };
+  }
+  enum LogResult
+  { Success, UnknownError, NotAvailable, ... }
   class JournalMessage : IDisposable
   {
     // Returns whether the journal service is available.

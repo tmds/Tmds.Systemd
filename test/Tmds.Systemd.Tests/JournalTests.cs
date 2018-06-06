@@ -196,7 +196,8 @@ namespace Tmds.Systemd.Tests
                 Assert.Equal(0, message.GetData().Count);
 
                 // This shouldn't throw.
-                Journal.Log(LogFlags.Information, message);
+                LogResult result = Journal.Log(LogFlags.Information, message);
+                Assert.Equal(LogResult.NotAvailable, result);
             }
         }
 
@@ -228,7 +229,8 @@ namespace Tmds.Systemd.Tests
                 message.Append("FIELD", "Value");
 
                 // This shouldn't throw.
-                Journal.Log(LogFlags.Information, message);
+                LogResult result = Journal.Log(LogFlags.Information, message);
+                Assert.Equal(LogResult.Success, result);
 
                 var fields = ReadFields(serverSocket);
                 Assert.Equal(3, fields.Count);
@@ -249,7 +251,8 @@ namespace Tmds.Systemd.Tests
                     message.Append($"FIELD{i}", $"{i} " + valueSuffix);
                 }
 
-                Journal.Log(LogFlags.Information, message);
+                LogResult result = Journal.Log(LogFlags.Information, message);
+                Assert.Equal(LogResult.Success, result);
 
                 var fields = ReadFields(serverSocket);
                 Assert.Equal(fieldCount + 2, fields.Count);
