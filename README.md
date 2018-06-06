@@ -146,6 +146,7 @@ Add the package reference to `MyDaemon.csproj`.
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Tmds.Systemd" Version="0.4.0-*"/>
+    <PackageReference Include="Tmds.Systemd.Logging" Version="0.4.0-*"/>
   </ItemGroup>
 </Project>
 ```
