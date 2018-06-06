@@ -94,7 +94,7 @@ namespace Tmds.Systemd
 
             if (!_isEnabled)
             {
-                return default(Span<byte>);
+                return default(ReadOnlySpan<byte>);
             }
 
             const byte ReplacementChar = (byte)'X';
@@ -364,6 +364,7 @@ namespace Tmds.Systemd
             return bytesUsed;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EnsureCapacity(int minSize, int desiredSize = 0)
         {
             if (_currentSegment == null || (_currentSegment.Length - _bytesWritten) <  + minSize)
@@ -375,6 +376,13 @@ namespace Tmds.Systemd
             }
         }
 
-        private Span<byte> CurrentRemaining => new Span<byte>(_currentSegment, _bytesWritten, _currentSegment.Length - _bytesWritten);
+        private Span<byte> CurrentRemaining
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return new Span<byte>(_currentSegment, _bytesWritten, _currentSegment.Length - _bytesWritten);
+            }
+        }
     }
 }
