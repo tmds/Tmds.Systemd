@@ -41,8 +41,6 @@ namespace Tmds.Systemd
   { Success, UnknownError, NotAvailable, ... }
   class JournalMessage : IDisposable
   {
-    // Returns whether the journal service is available.
-    bool IsEnabled { get; }
     // Appends a field to the message.
     JournalMessage Append(string name, object value);
     JournalMessage Append(JournalFieldName name, object value);
