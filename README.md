@@ -149,8 +149,8 @@ Add the package reference to `MyDaemon.csproj`.
     <TargetFramework>netcoreapp2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Tmds.Systemd" Version="0.4.0-*"/>
-    <PackageReference Include="Tmds.Systemd.Logging" Version="0.4.0-*"/>
+    <PackageReference Include="Tmds.Systemd" Version="0.5.0-*"/>
+    <PackageReference Include="Tmds.Systemd.Logging" Version="0.5.0-*"/>
   </ItemGroup>
 </Project>
 ```
