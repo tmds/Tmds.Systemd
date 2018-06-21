@@ -230,13 +230,14 @@ namespace Tmds.Systemd.Tests
                 // Journal is available
                 Assert.True(Journal.IsAvailable);
 
-                TestSimpleMessage(serverSocket);
+                TestSimpleMessage(serverSocket, dontAppendSyslogIdentifier: false);
+                TestSimpleMessage(serverSocket, dontAppendSyslogIdentifier: true);
 
                 TestLongMessage(serverSocket);
             }
         }
 
-        private void TestSimpleMessage(Socket serverSocket)
+        private void TestSimpleMessage(Socket serverSocket, bool dontAppendSyslogIdentifier)
         {
             using (var message = Journal.GetMessage())
             {
@@ -246,14 +247,29 @@ namespace Tmds.Systemd.Tests
                 message.Append("FIELD", "Value");
 
                 // This shouldn't throw.
-                LogResult result = Journal.Log(LogFlags.Information, message);
+                LogFlags flags = LogFlags.Information;
+                if (dontAppendSyslogIdentifier)
+                {
+                    flags |= LogFlags.DontAppendSyslogIdentifier;
+                }
+                LogResult result = Journal.Log(flags, message);
                 Assert.Equal(LogResult.Success, result);
 
                 var fields = ReadFields(serverSocket);
-                Assert.Equal(3, fields.Count);
+                if (dontAppendSyslogIdentifier)
+                {
+                    Assert.Equal(2, fields.Count);
+                }
+                else
+                {
+                    Assert.Equal(3, fields.Count);
+                }
                 Assert.Equal("Value", fields["FIELD"]);
                 Assert.Equal("6", fields["PRIORITY"]);
-                Assert.Equal(Journal.SyslogIdentifier, fields["SYSLOG_IDENTIFIER"]);
+                if (!dontAppendSyslogIdentifier)
+                {
+                    Assert.Equal(Journal.SyslogIdentifier, fields["SYSLOG_IDENTIFIER"]);
+                }
             }
         }
 

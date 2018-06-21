@@ -17,6 +17,7 @@ namespace Tmds.Systemd.Logging
         private const string OriginalFormat = "{OriginalFormat}";
 
         private readonly LogFlags _additionalFlags;
+        private readonly string   _syslogIdentifier;
 
         internal JournalLogger(string name, IExternalScopeProvider scopeProvider, JournalLoggerOptions options)
         {
@@ -30,6 +31,11 @@ namespace Tmds.Systemd.Logging
             if (options.DropWhenBusy)
             {
                 _additionalFlags |= LogFlags.DropWhenBusy;
+            }
+            _syslogIdentifier = options.SyslogIdentifier;
+            if (_syslogIdentifier != null)
+            {
+                _additionalFlags |= LogFlags.DontAppendSyslogIdentifier;
             }
         }
 
@@ -86,6 +92,10 @@ namespace Tmds.Systemd.Logging
             {
                 using (var logMessage = Journal.GetMessage())
                 {
+                    if (_syslogIdentifier != null)
+                    {
+                        logMessage.Append(JournalFieldName.SyslogIdentifier, _syslogIdentifier);
+                    }
                     logMessage.Append(Logger, Name);
                     if (eventId.Id != 0 || eventId.Name != null)
                     {
