@@ -44,8 +44,8 @@ namespace Tmds.Systemd
   class JournalMessage : IDisposable
   {
     // Appends a field to the message.
-    JournalMessage Append(string name, object value);
-    JournalMessage Append(JournalFieldName name, object value);
+    JournalMessage Append(string name          , Type value);
+    JournalMessage Append(JournalFieldName name, Type value);
   }
   // Represents a valid journal field name.
   struct JournalFieldName

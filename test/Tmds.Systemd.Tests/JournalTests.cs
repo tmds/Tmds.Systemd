@@ -9,6 +9,7 @@ using Xunit;
 using Tmds.Systemd;
 using System.Threading;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 
 namespace Tmds.Systemd.Tests
 {
@@ -177,6 +178,22 @@ namespace Tmds.Systemd.Tests
                 Assert.Equal(expected, deserializedFields["B"]);
                 Assert.Equal(expected, deserializedFields["C"]);
                 Assert.Equal(expected, deserializedFields["D"]);
+            }
+        }
+
+        [Fact]
+        public void AppendSpan()
+        {
+            using (var message = CreateJournalMessage())
+            {
+                message.Append((JournalFieldName)"A", Encoding.UTF8.GetBytes("Hello").AsSpan());
+                message.Append((JournalFieldName)"B", Encoding.UTF8.GetBytes("World").AsSpan());
+
+                Dictionary<string, string> deserializedFields = ReadFields(message);
+                Assert.Equal(2, deserializedFields.Count);
+
+                Assert.Equal("Hello", deserializedFields["A"]);
+                Assert.Equal("World", deserializedFields["B"]);
             }
         }
 

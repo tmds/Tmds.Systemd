@@ -66,6 +66,17 @@ namespace Tmds.Systemd
         }
 
         /// <summary>Appends a field to the message.</summary>
+        public JournalMessage Append(string name, ReadOnlySpan<byte> value)
+        {
+            Span<byte> fieldName = stackalloc byte[MaxFieldLength];
+            return AppendSpanField(SanitizeFieldName(name, fieldName), value);
+        }
+
+        /// <summary>Appends a field to the message.</summary>
+        public JournalMessage Append(JournalFieldName name, ReadOnlySpan<byte> value)
+            => AppendSpanField((ReadOnlySpan<byte>)name, value);
+
+        /// <summary>Appends a field to the message.</summary>
         public JournalMessage Append(string name, object value)
         {
             if (value == null)
@@ -74,7 +85,6 @@ namespace Tmds.Systemd
             }
 
             Span<byte> fieldName = stackalloc byte[MaxFieldLength];
-
             return AppendField(SanitizeFieldName(name, fieldName), value);
         }
 
@@ -182,6 +192,34 @@ namespace Tmds.Systemd
             }
             // Fill in length
             BinaryPrimitives.WriteUInt64LittleEndian(valueLengthAt, (ulong)bytesWritten);
+
+            // Separator
+            AppendChar('\n');
+
+            return this;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private unsafe JournalMessage AppendSpanField(ReadOnlySpan<byte> name, ReadOnlySpan<byte> value)
+        {
+            if (!_isEnabled)
+            {
+                return this;
+            }
+
+            // Field name
+            AppendSpan(name);
+
+            // Separator
+            AppendChar('\n');
+
+            // Field length
+            EnsureCapacity(8);
+            BinaryPrimitives.WriteUInt64LittleEndian(CurrentRemaining, (ulong)value.Length);
+            _bytesWritten += 8;
+
+            // Field value
+            AppendSpan(value);
 
             // Separator
             AppendChar('\n');
