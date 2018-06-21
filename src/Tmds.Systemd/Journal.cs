@@ -25,25 +25,30 @@ namespace Tmds.Systemd
 
         private static Socket s_journalSocket;
         private static string s_journalSocketPath = "/run/systemd/journal/socket";
-        private static bool? s_isAvailable = true;
+        private static bool? s_isSupported;
 
         // for testing
-        internal static void ConfigureJournalSocket(string journalSocketPath)
+        internal static void ConfigureJournalSocket(string journalSocketPath, bool? isSupported = null)
         {
-            s_isAvailable = null;
+            s_journalSocket?.Dispose();
+            s_journalSocket = null;
+            s_isSupported = isSupported;
             s_journalSocketPath = journalSocketPath;
         }
 
-        /// <summary>Returns whether the journal service is available.</summary>
-        public static bool IsAvailable
+        /// <summary>Returns whether the journal service is currently available.</summary>
+        public static bool IsAvailable => IsSupported && File.Exists(s_journalSocketPath);
+
+        /// <summary>Returns whether the journal service can be available.</summary>
+        public static bool IsSupported
         {
             get
             {
-                if (s_isAvailable == null)
+                if (s_isSupported == null)
                 {
-                    s_isAvailable = File.Exists(s_journalSocketPath);
+                    GetJournalSocket();
                 }
-                return s_isAvailable.Value;
+                return s_isSupported.Value;
             }
         }
 
@@ -53,26 +58,47 @@ namespace Tmds.Systemd
         /// <summary>Obtain a cleared JournalMessage. The Message must be Disposed to return it.</summary>
         public static JournalMessage GetMessage()
         {
-            return JournalMessage.Get(IsAvailable);
+            return JournalMessage.Get(IsSupported);
         }
 
         private static Socket GetJournalSocket()
         {
-            if (!IsAvailable)
-            {
-                return null;
-            }
-
-            if (s_journalSocket == null)
+            if (s_isSupported != false && s_journalSocket == null)
             {
                 Socket journalSocket = Volatile.Read(ref s_journalSocket);
                 if (journalSocket == null)
                 {
-                    journalSocket = new Socket(AddressFamily.Unix, SocketType.Dgram, ProtocolType.Unspecified);
-                    journalSocket.Connect(new UnixDomainSocketEndPoint(s_journalSocketPath));
-                    if (Interlocked.CompareExchange(ref s_journalSocket, journalSocket, null) != null)
+                    try
                     {
-                        journalSocket.Dispose();
+                        journalSocket = new Socket(AddressFamily.Unix, SocketType.Dgram, ProtocolType.Unspecified);
+                        journalSocket.Connect(new UnixDomainSocketEndPoint(s_journalSocketPath));
+                        if (Interlocked.CompareExchange(ref s_journalSocket, journalSocket, null) != null)
+                        {
+                            journalSocket.Dispose();
+                        }
+                        s_isSupported = true;
+                    }
+                    catch (SocketException se)
+                    {
+                        journalSocket?.Dispose();
+                        if (se.SocketErrorCode == SocketError.AddressFamilyNotSupported)
+                        {
+                            s_isSupported = false;
+                        }
+                        else if (se.SocketErrorCode == SocketError.AddressNotAvailable)
+                        {
+                            // The journal service is not running currently.
+                            s_isSupported = true;
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                    catch
+                    {
+                        journalSocket?.Dispose();
+                        throw;
                     }
                 }
             }
@@ -87,7 +113,14 @@ namespace Tmds.Systemd
             Socket socket = GetJournalSocket();
             if (socket == null)
             {
-                return LogResult.NotAvailable;
+                if (s_isSupported.Value)
+                {
+                    return LogResult.NotAvailable;
+                }
+                else
+                {
+                    return LogResult.NotSupported;
+                }
             }
 
             if (message.IsEmpty)

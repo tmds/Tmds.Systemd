@@ -21,7 +21,9 @@ namespace Tmds.Systemd
   }
   static class Journal
   {
-    // Returns whether the journal service is available.
+    // Returns whether the journal service can be available.
+    bool IsSupported { get; }
+    // Returns whether the journal service is currently available.
     bool IsAvailable { get; }
     // The syslog identifier string added to each log message.
     SyslogIdentifier { get; set; } = "dotnet";
@@ -38,7 +40,7 @@ namespace Tmds.Systemd
     DropWhenBusy
   }
   enum LogResult
-  { Success, UnknownError, NotAvailable, ... }
+  { Success, UnknownError, NotAvailable, NotSupported, ... }
   class JournalMessage : IDisposable
   {
     // Appends a field to the message.
