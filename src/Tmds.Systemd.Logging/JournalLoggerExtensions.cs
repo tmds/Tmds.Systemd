@@ -17,7 +17,7 @@ namespace Microsoft.Extensions.Logging
         /// <param name="builder">The <see cref="ILoggingBuilder"/> to use.</param>
         public static ILoggingBuilder AddJournal(this ILoggingBuilder builder)
         {
-            if (Journal.IsAvailable)
+            if (Journal.IsSupported)
             {
                 builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, JournalLoggerProvider>());
             }

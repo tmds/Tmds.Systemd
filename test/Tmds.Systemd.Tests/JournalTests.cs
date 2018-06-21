@@ -107,6 +107,7 @@ namespace Tmds.Systemd.Tests
         {
             TestLogNonExisting();
             TestLogExisting();
+            TestLogNonSupported();
         }
 
         [Theory]
@@ -188,6 +189,22 @@ namespace Tmds.Systemd.Tests
             Assert.False(Journal.IsAvailable);
             using (var message = Journal.GetMessage())
             {
+                // This shouldn't throw.
+                LogResult result = Journal.Log(LogFlags.Information, message);
+                Assert.Equal(LogResult.NotAvailable, result);
+            }
+        }
+
+        private void TestLogNonSupported()
+        {
+            Journal.ConfigureJournalSocket("/", isSupported : false);
+
+            // Journal is not available
+            Assert.False(Journal.IsAvailable);
+            // Journal is not supported
+            Assert.False(Journal.IsSupported);
+            using (var message = Journal.GetMessage())
+            {
                 // Message is not enabled
                 Assert.False(message.IsEnabled);
 
@@ -197,7 +214,7 @@ namespace Tmds.Systemd.Tests
 
                 // This shouldn't throw.
                 LogResult result = Journal.Log(LogFlags.Information, message);
-                Assert.Equal(LogResult.NotAvailable, result);
+                Assert.Equal(LogResult.NotSupported, result);
             }
         }
 

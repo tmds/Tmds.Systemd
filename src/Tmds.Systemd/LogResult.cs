@@ -9,6 +9,8 @@ namespace Tmds.Systemd
         UnknownError,
         /// <summary>Logging service is not available.</summary>
         NotAvailable,
+        /// <summary>Logging service is not supported.</summary>
+        NotSupported,
         /// <summary>Message is too large to be sent.</summary>
         Size,
         /// <summary>Logging would block.</summary>
