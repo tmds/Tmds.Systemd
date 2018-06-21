@@ -7,5 +7,7 @@ namespace Tmds.Systemd.Logging
     {
         /// <summary>Drop messages instead of blocking.</summary>
         public bool DropWhenBusy { get; set; }
+        /// <summary>The syslog identifier added to each log message.</summary>
+        public string SyslogIdentifier { get; set; }
     }
 }

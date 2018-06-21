@@ -26,7 +26,10 @@ namespace Tmds.Systemd
         Information = 7,
         /// <summary>Debug-level messages.</summary>
         Debug = 8,
+
         /// <summary>Drop the message instead of blocking.</summary>
-        DropWhenBusy
+        DropWhenBusy               = 1 << 4,
+        /// <summary>Don't append a syslog identifier.</summary>
+        DontAppendSyslogIdentifier = 1 << 5
     }
 }
