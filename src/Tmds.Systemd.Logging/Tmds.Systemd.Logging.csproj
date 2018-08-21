@@ -4,7 +4,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Description>Systemd journal logger provider implementation for Microsoft.Extensions.Logging.</Description>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <PackageTags>systemd;logging</PackageTags>
   </PropertyGroup>
 
