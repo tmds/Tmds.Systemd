@@ -18,6 +18,10 @@ namespace Tmds.Systemd
     bool Notify(ServiceState state, params ServiceState[] states);
     // Instantiate Sockets for the file descriptors passed by the service manager.
     Socket[] GetListenSockets();
+    // Whether the process is running as part of a unit.
+    bool IsRunningAsService;
+    // Unique identifier of the runtime cycle of the unit.
+    string InvocationId;
   }
   static class Journal
   {
