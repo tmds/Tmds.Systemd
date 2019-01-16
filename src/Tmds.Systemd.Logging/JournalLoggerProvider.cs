@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace Tmds.Systemd.Logging
 {
+    [ProviderAlias("Journal")]
     class JournalLoggerProvider : ILoggerProvider, ISupportExternalScope
     {
         private readonly ConcurrentDictionary<string, JournalLogger> _loggers = new ConcurrentDictionary<string, JournalLogger>();
