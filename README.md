@@ -88,6 +88,24 @@ class JournalLoggerOptions
 }
 ```
 
+The logger can be configured in `appsettings.json` using the `Journal` alias. For example:
+
+```json
+"Logging": {
+...
+  "Journal": {
+    "IncludeScopes": false,
+    "LogLevel": {
+      "Default": "Warning",
+      "System": "Warning",
+      "Microsoft": "Warning",
+      "Microsoft.AspNetCore.Hosting.Internal.WebHost": "Information"
+    }
+  }
+...
+}
+```
+
 The logging added is **structured logging**. For example, these entries are stored for a GET request:
 
 ```json
