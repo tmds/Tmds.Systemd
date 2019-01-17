@@ -88,11 +88,16 @@ class JournalLoggerOptions
 }
 ```
 
-The logger can be configured in `appsettings.json` using the `Journal` alias. For example:
+The logger can be configured in `appsettings.json` using the `Journal` alias. The level specified in `Logging.Journal.LogLevel` overrides anything set in `Logging.LogLevel`. For example:
 
 ```json
 "Logging": {
-...
+  "LogLevel": {
+    "IncludeScopes": false,
+    "Default": "Debug",
+    "System": "Information",
+    "Microsoft": "Information"
+  },
   "Journal": {
     "IncludeScopes": false,
     "LogLevel": {
@@ -102,7 +107,6 @@ The logger can be configured in `appsettings.json` using the `Journal` alias. Fo
       "Microsoft.AspNetCore.Hosting.Internal.WebHost": "Information"
     }
   }
-...
 }
 ```
 
