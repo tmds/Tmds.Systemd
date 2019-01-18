@@ -4,7 +4,7 @@
     <Authors>Tom Deseyn</Authors>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/tmds/Tmds.Systemd</RepositoryUrl>
-    <PackageLicenseUrl>https://raw.githubusercontent.com/tmds/Tmds.Systemd/master/COPYING</PackageLicenseUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Tom Deseyn</Copyright>
   </PropertyGroup>
 </Project>
