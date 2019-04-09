@@ -149,52 +149,60 @@ namespace Tmds.Systemd
             }
             Span<IOVector> iovs = stackalloc IOVector[dataLength];
             Span<GCHandle> handles = stackalloc GCHandle[dataLength];
-            for (int i = 0; i < data.Count; i++)
+            int handlesAllocated = 0;
+            try
             {
-                handles[i] = GCHandle.Alloc(data[i].Array, GCHandleType.Pinned);
-                iovs[i].Base = handles[i].AddrOfPinnedObject();
-                iovs[i].Length = new IntPtr(data[i].Count);
-            }
-            int sendmsgFlags = 0;
-            if ((flags & LogFlags.DropWhenBusy) != 0)
-            {
-                sendmsgFlags |= MSG_DONTWAIT;
-            }
-            LogResult result = LogResult.Success;
-            fixed (IOVector* pIovs = &MemoryMarshal.GetReference(iovs))
-            {
-                bool loop;
-                do
+                for (int i = 0; i < data.Count; i++)
                 {
-                    loop = false;
-                    msghdr msg;
-                    msg.msg_iov = pIovs;
-                    msg.msg_iovlen = (SizeT)dataLength;
-                    int rv = sendmsg(socket.Handle.ToInt32(), &msg, sendmsgFlags).ToInt32();
-                    if (rv < 0)
+                    handles[i] = GCHandle.Alloc(data[i].Array, GCHandleType.Pinned);
+                    handlesAllocated++;
+                    iovs[i].Base = handles[i].AddrOfPinnedObject();
+                    iovs[i].Length = new IntPtr(data[i].Count);
+                }
+                int sendmsgFlags = 0;
+                if ((flags & LogFlags.DropWhenBusy) != 0)
+                {
+                    sendmsgFlags |= MSG_DONTWAIT;
+                }
+                LogResult result = LogResult.Success;
+                fixed (IOVector* pIovs = &MemoryMarshal.GetReference(iovs))
+                {
+                    bool loop;
+                    do
                     {
-                        int errno = Marshal.GetLastWin32Error();
-                        if (errno == EINTR)
+                        loop = false;
+                        msghdr msg;
+                        msg.msg_iov = pIovs;
+                        msg.msg_iovlen = (SizeT)dataLength;
+                        int rv = sendmsg(socket.Handle.ToInt32(), &msg, sendmsgFlags).ToInt32();
+                        if (rv < 0)
                         {
-                            loop = true;
+                            int errno = Marshal.GetLastWin32Error();
+                            if (errno == EINTR)
+                            {
+                                loop = true;
+                            }
+                            else if (errno == EAGAIN)
+                            {
+                                result = LogResult.Busy;
+                            }
+                            else
+                            {
+                                result = LogResult.UnknownError;
+                                ErrorWhileLogging($"errno={errno}");
+                            }
                         }
-                        else if (errno == EAGAIN)
-                        {
-                            result = LogResult.Busy;
-                        }
-                        else
-                        {
-                            result = LogResult.UnknownError;
-                            ErrorWhileLogging($"errno={errno}");
-                        }
-                    }
-                } while (loop);
+                    } while (loop);
+                }
+                return result;
             }
-            for (int i = 0; i < handles.Length; i++)
+            finally
             {
-                handles[i].Free();
+                for (int i = 0; i < handlesAllocated; i++)
+                {
+                    handles[i].Free();
+                }
             }
-            return result;
         }
 
         private static void ErrorWhileLogging(string cause)
