@@ -108,7 +108,7 @@ namespace Tmds.Systemd
             }
             else if (addressFamily == AddressFamily.InterNetworkV6)
             {
-                endPoint = new IPEndPoint(IPAddress.Any, 0);
+                endPoint = new IPEndPoint(IPAddress.IPv6Any, 0);
             }
             else if (addressFamily == AddressFamily.Unix)
             {
