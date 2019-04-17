@@ -1,24 +1,13 @@
-language: generic
+language: csharp
+mono: none
+dist: xenial
+dotnet: 2.2
 
-sudo: required
-dist: trusty
 env:
   global:
     - DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
     - DOTNET_CLI_TELEMETRY_OPTOUT: 1
     - secure: "e0vq8jNbyWN9EL0SPY2f8wrbOQRp6XfBPJTSu475hnUc6Naca5uhPqM7b5tBXYvJ9uCdxwPxpTYJvyfZAamYw6x8qSLE/pohxc6hwQ+PEDq+aLm0Q/nj+U6fVc/f5r+Hil+AfTlWXE97mudc5y8poStPRViSq3vpKp95zDD9ZQBVZP4JyCN0tFGeJ88SHZkGtUIcqASu1YO8ctpcGxhDT+Q0pXJOASm8od6sGl8IEDRjGS16hCn5o/L+t0RQb1kUxanfJa8yQ82z0GjpUGZFn5jWQ03uuujwrUexDh4WuKTpRce1XeiMBIjT5sWXw1gUF8FS5gZ6qIEkiEuhbAkxTg05IRM2kFFZK1UcgFtlIjlpPLG1AD9O3/od7OWKpbY5rL9XYY4vcK4sU2dlcJsE8fZyV1DHiowFN9DL+oQ8MqU4JIfQH+igxNS7JXQ6Kh8CsWtz873q6Yt68L2QDxX0Yw+7Ma/bleGpptDGNf2YAq0fL7L/uJxtJWyeOXrA9MiSsN2poBk0xzX3yE2txagYoZrTAjMnTJEH89QlPJ7VpaMUwroQ2H9qpQz1Lyt/vgEzhZwcErGWcVsNSKwzZWh/hm+BY73U13dSUZ/FF9go9DEsHM8kK96/nA8R8+Bso/Z/FNKpu6yoy+cLXcxGLtwPmcuTYRYCQSnu6Y/B8gK50T0="
-
-addons:
-  apt:
-    packages:
-    - gettext
-    - libunwind8
-    - libicu52
-
-before_install:
-  - curl -sSL -o dotnet.tar.gz https://download.microsoft.com/download/8/8/5/88544F33-836A-49A5-8B67-451C24709A8F/dotnet-sdk-2.1.300-linux-x64.tar.gz
-  - sudo mkdir -p /opt/dotnet && sudo tar zxf dotnet.tar.gz -C /opt/dotnet
-  - sudo ln -s /opt/dotnet/dotnet /usr/local/bin
 
 script:
   - pushd test/Tmds.Systemd.Tests && dotnet restore && dotnet test && popd
