@@ -74,18 +74,20 @@ namespace Tmds.Systemd.Tests
             }
         }
 
-        [Fact]
-        public void ListenSocketCanAccept()
+        [Theory]
+        [InlineData(AddressFamily.InterNetwork)]
+        [InlineData(AddressFamily.InterNetworkV6)]
+        public void ListenSocketCanAccept(AddressFamily addressFamily)
         {
-            using (var fds = new FdSequence(3))
+            using (var fds = new FdSequence(3, addressFamily))
             {
                 Socket[] sockets = fds.GetListenSockets(fds[0], fds.Count);
                 foreach (Socket server in sockets)
                 {
                     Assert.Equal(server.SocketType, SocketType.Stream);
-                    Assert.Equal(server.AddressFamily, AddressFamily.InterNetwork);
+                    Assert.Equal(server.AddressFamily, addressFamily);
                     Assert.Equal(server.ProtocolType, ProtocolType.Tcp);
-                    using (var client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+                    using (var client = new Socket(addressFamily, SocketType.Stream, ProtocolType.Tcp))
                     {
                         client.Connect(server.LocalEndPoint);
                         using (var acceptedSocket = server.Accept())
@@ -98,6 +100,8 @@ namespace Tmds.Systemd.Tests
         [Fact]
         public void Cloexec()
         {
+            const int TimeOutSec = 10;
+            const int SleepMs = 10;
             using (var fds = new FdSequence(1))
             {
                 Socket[] sockets = fds.GetListenSockets(fds[0], fds.Count);
@@ -105,7 +109,16 @@ namespace Tmds.Systemd.Tests
                 using (var process = Process.Start("sleep", "10"))
                 {
                     string fdPath = $"/proc/{process.Handle}/fd/{GetFd(sockets[0])}";
-                    Assert.False(File.Exists(fdPath));
+                    bool fileExists = true;
+                    for (int i = 0; fileExists && i < TimeOutSec * 1000 / SleepMs; i++)
+                    {
+                        fileExists = File.Exists(fdPath);
+                        if (fileExists)
+                        {
+                            System.Threading.Thread.Sleep(SleepMs);
+                        }
+                    }
+                    Assert.False(fileExists);
                     process.Kill();
                 }
             }
@@ -118,7 +131,7 @@ namespace Tmds.Systemd.Tests
             private int[] _fds;
             private Socket[] _listenSockets;
 
-            public FdSequence(int count)
+            public FdSequence(int count, AddressFamily addressFamily = AddressFamily.InterNetwork)
             {
                 _fds = new int[count];
                 lock (s_gate)
@@ -126,8 +139,9 @@ namespace Tmds.Systemd.Tests
                     for (int i = 0; i < count; i++)
                     {
                         int fd = s_startFd++;
-                        var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                        socket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+                        var socket = new Socket(addressFamily, SocketType.Stream, ProtocolType.Tcp);
+                        IPAddress loopBackAddress = addressFamily == AddressFamily.InterNetwork ? IPAddress.Loopback : IPAddress.IPv6Loopback;
+                        socket.Bind(new IPEndPoint(loopBackAddress, 0));
                         socket.Listen(10);
                         int rv = dup2(GetFd(socket), fd);
                         Assert.NotEqual(-1, rv);
