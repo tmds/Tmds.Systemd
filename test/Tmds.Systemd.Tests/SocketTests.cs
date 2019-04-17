@@ -79,6 +79,13 @@ namespace Tmds.Systemd.Tests
         [InlineData(AddressFamily.InterNetworkV6)]
         public void ListenSocketCanAccept(AddressFamily addressFamily)
         {
+            // Travis doesn't have '::1' configured.
+            if (addressFamily == AddressFamily.InterNetworkV6 &&
+                Environment.GetEnvironmentVariable("TRAVIS") == "true")
+            {
+                return;
+            }
+
             using (var fds = new FdSequence(3, addressFamily))
             {
                 Socket[] sockets = fds.GetListenSockets(fds[0], fds.Count);
