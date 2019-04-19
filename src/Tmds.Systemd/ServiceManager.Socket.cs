@@ -150,7 +150,8 @@ namespace Tmds.Systemd
         private static ReflectionMethods LookupMethods()
         {
             Assembly socketAssembly = typeof(Socket).GetTypeInfo().Assembly;
-            Type safeCloseSocketType = socketAssembly.GetType("System.Net.Sockets.SafeCloseSocket");
+            Type safeCloseSocketType = socketAssembly.GetType("System.Net.Sockets.SafeSocketHandle") ?? // .NET Core 3.0+
+                                       socketAssembly.GetType("System.Net.Sockets.SafeCloseSocket");
             if (safeCloseSocketType == null)
             {
                 ThrowNotSupported(nameof(safeCloseSocketType));
