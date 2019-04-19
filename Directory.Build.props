@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <VersionPrefix>0.6.3</VersionPrefix>
+    <VersionPrefix>0.7.0</VersionPrefix>
     <Authors>Tom Deseyn</Authors>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/tmds/Tmds.Systemd</RepositoryUrl>
