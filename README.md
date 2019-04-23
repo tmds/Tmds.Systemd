@@ -30,7 +30,7 @@ namespace Tmds.Systemd
     // Returns whether the journal service is currently available.
     bool IsAvailable { get; }
     // The syslog identifier added to each log message.
-    SyslogIdentifier { get; set; } = "dotnet";
+    SyslogIdentifier { get; set; } = null;
     // Obtain a cleared JournalMessage. The Message must be Disposed to return it.
     JournalMessage GetMessage();
     // Submit a log entry to the journal.
@@ -84,7 +84,7 @@ class JournalLoggerOptions
   // Drop messages instead of blocking.
   bool DropWhenBusy { get; set; }
   // The syslog identifier added to each log message.
-  string SyslogIdentifier { get; set; }
+  string SyslogIdentifier { get; set; } = Journal.SyslogIdentifier;
 }
 ```
 

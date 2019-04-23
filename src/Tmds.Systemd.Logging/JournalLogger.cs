@@ -33,10 +33,7 @@ namespace Tmds.Systemd.Logging
                 _additionalFlags |= LogFlags.DropWhenBusy;
             }
             _syslogIdentifier = options.SyslogIdentifier;
-            if (_syslogIdentifier != null)
-            {
-                _additionalFlags |= LogFlags.DontAppendSyslogIdentifier;
-            }
+            _additionalFlags |= LogFlags.DontAppendSyslogIdentifier;
         }
 
         internal IExternalScopeProvider ScopeProvider { get; set; }
