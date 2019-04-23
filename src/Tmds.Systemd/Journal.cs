@@ -53,7 +53,7 @@ namespace Tmds.Systemd
         }
 
         /// <summary>The syslog identifier added to each log message.</summary>
-        public static string SyslogIdentifier { get; set; } = "dotnet";
+        public static string SyslogIdentifier { get; set; } = null;
 
         /// <summary>Obtain a cleared JournalMessage. The Message must be Disposed to return it.</summary>
         public static JournalMessage GetMessage()

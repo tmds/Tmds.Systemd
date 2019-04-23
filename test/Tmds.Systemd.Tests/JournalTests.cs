@@ -256,6 +256,7 @@ namespace Tmds.Systemd.Tests
 
         private void TestSimpleMessage(Socket serverSocket, bool dontAppendSyslogIdentifier)
         {
+            Journal.SyslogIdentifier = "dotnet";
             using (var message = Journal.GetMessage())
             {
                 // Message is enabled
