@@ -61,7 +61,7 @@ namespace Tmds.Systemd
                     return Array.Empty<Socket>();
                 }
                 string listenPid = Environment.GetEnvironmentVariable(LISTEN_PID);
-                string myPid = Process.GetCurrentProcess().Handle.ToString();
+                string myPid = Process.GetCurrentProcess().Id.ToString();
                 return GetListenSockets(myPid, listenPid, SD_LISTEN_FDS_START, fdCount);
             }
         }
