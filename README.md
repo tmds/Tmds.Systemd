@@ -3,9 +3,7 @@
 
 Tmds.Systemd is a .NET Core library for interacting with systemd.
 
-## Api
-
-### Tmds.Systemd package
+## Tmds.Systemd package
 
 This package supports .NET Core 2.0+.
 
@@ -40,6 +38,8 @@ namespace Tmds.Systemd
   { None,
     // Log levels.
     Emergency, ..., Debug,
+    // Don't append a syslog identifier.
+    DontAppendSyslogIdentifier,
     // Drop message instead of blocking.
     DropWhenBusy
   }
@@ -63,7 +63,7 @@ namespace Tmds.Systemd
 }
 ```
 
-### Tmds.Systemd.Logging package
+## Tmds.Systemd.Logging package
 
 This package allows to easly add journal logging to an ASP.NET Core application by adding the following line to the host building step:
 
@@ -146,131 +146,193 @@ The logging added is **structured logging**. For example, these entries are stor
 
 To follow the journal logging live you can use this command `journalctl -f -t dotnet -o json-pretty | grep -v \"_`.
 
-## Example
+## Using Systemd with .NET Core applications
 
-Create the application:
+Services can be created on the system-level systemd instance or on a user-level instance that is running as long as the user is logged in.
+The systemd commands, like `systemctl`, work on the system daemon by default. Passing the `--user` flag target the user daemon.
 
-```
-$ dotnet new console -o MyDaemon
-$ cd MyDaemon
-```
+Configuration files are placed under `/etc/systemd/system/ ` and `~/.config/systemd/user/` respectively.
+For system unit files, ensure `chmod 664` and `chown root:root`.
 
-To use a daily build, add the myget NuGet feed to, `NuGet.Config`.
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-  <packageSources>
-    <add key="tmds" value="https://www.myget.org/F/tmds/api/v3/index.json" />
-  </packageSources>
-</configuration>
-```
-
-Add the package reference to `MyDaemon.csproj`.
-
-```xml
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="Tmds.Systemd" Version="0.5.0-*"/>
-    <PackageReference Include="Tmds.Systemd.Logging" Version="0.5.0-*"/>
-  </ItemGroup>
-</Project>
-```
-
-Restore the dependency:
+On Fedora with .NET SIG packages, the SELinux context needs to be updated by running the following commands:
 
 ```
-$ dotnet restore
+sudo yum install -y policycoreutils-python-util
+sudo semanage fcontext -a -t bin_t /usr/lib/dotnet/dotnet
+sudo restorecon -v /usr/lib64/dotnet/dotnet
 ```
 
-Implement the daemon in `Program.cs`.
-
-```C#
-using System;
-using static System.Threading.Thread;
-using static System.Console;
-using Tmds.Systemd;
-
-namespace MyDaemon
-{
-    class Program
-    {
-        static void Main(string[] args)
-        {
-            Sleep(2000);
-            ServiceManager.Notify(ServiceState.Ready);
-            while (true)
-            {
-                foreach (var status in new [] { "Doing great", "Everything fine", "Still running" })
-                {
-                    ServiceManager.Notify(ServiceState.Status(status));
-                    Sleep(5000);
-                }
-            }
-        }
-    }
-}
-```
-
-Publish the application:
-```
-$ dotnet publish -c Release
-```
-
-Create a user and folder for our daemon:
-```
-# useradd -s /sbin/nologin mydaemon
-# mkdir /var/mydaemon
-```
-
-Now we copy the application in the folder:
-```
-# cp -r ./bin/Release/netcoreapp2.0/publish/* /var/mydaemon
-# chown -R mydaemon:mydaemon /var/mydaemon
-```
-
-Create a systemd service file:
+Services are described with a file named `<unitname>.service` and look like this:
 
 ```
-# touch /etc/systemd/system/mydaemon.service
-# chmod 664 /etc/systemd/system/mydaemon.service
-```
-
-Add this content to the file `mydaemon.service`.
-
-```
-[Unit]
-Description=My .NET Core Daemon
-
 [Service]
-Type=notify
-WorkingDirectory=/var/mydaemon
-ExecStart=/opt/dotnet/dotnet MyDaemon.dll
-Restart=always
-RestartSec=10
+Type=simple
+WorkingDirectory=/home/username/app
+ExecStart=/opt/dotnet/dotnet /home/username/app/App.dll
+Restart=no
 SyslogIdentifier=mydaemon
-User=mydaemon
+User=username
+Group=groupname
+Environment=ASPNETCORE_ENVIRONMENT=Production
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-The `Type=notify` indicates the application will signal when it is ready.
+The values used in the file for `Type` is the default of `simple`. As soon as the application has started, it is considered ready.
+To control when the application is ready, you can set this to `notify` and call `ServiceManager.Notify(ServiceState.Ready)`.
 
-Start the service:
+The `ExecStart` must use a rooted path for the executable. If you are using .NET Core on RHEL7, you need to enable the proper
+software collection (scl) as part of the `ExecStart`. For example, `ExecStart=/bin/scl enable rh-dotnet22 -- dotnet /home/username/app/App.dll`.
+
+`Restart` is `no` is the default value, it means the application should not be restarted if it exits.
+For long running services setting this to `on-failure` is recommended.
+
+ASP.NET Core applications will throw an unhandled exception when they fail to bind the server address. The .NET Core runtime will turn
+that into a process abort. On systems using `systemd-coredump` (like Fedora) this will show up in the journal and a coredump will be created.
+Because this is a bit heavy, you may want to print out the exception and return a non-zero exit code instead:
+```
+public static int Main(string[] args)
+{
+    try
+    {
+        CreateWebHostBuilder(args).Build().Run();
+        return 0;
+    }
+    catch (System.Exception e)
+    {
+        Console.Error.Write("Unhandled exception: ");
+        Console.Error.WriteLine(e);
+        return 1;
+    }
+}
+```
+
+The `WantedBy` `multi-user.target` indicates that, when enabled (i.e. installed), the service should be started with the system.
+
+`SyslogIdentifier` is the log identifier used for application output from standard output and standard error. When unset, the `ExecStart` process name
+will be used. Logging performed using the `Tmds.Systemd.Journal` class (and `Tmds.Systemd.Logging` package) is not aware of the value set here.
+ASP.NET Core application will output some messages to standard out by default on startup and shutdown. To omit these, you can use the
+SuppressStatusMessages method on the host builder, for example: `.SuppressStatusMessages(Console.IsInputRedirected)`.
+
+`Environment` can be used to set environment variables. Multiple `Environment` lines can be added to the service file.
+
+After creating/editing the service file, the following commands can be used:
 
 ```
-# systemctl start mydaemon
+systemctl daemon-reload     # make systemd reload the unit files and pick up changes
+systemctl start <unitname>  # start the service now
+systemctl enable <unitname> # install the service so it gets started automatically (at the next boot)
 ```
 
-Notice the command blocks until it gets the `Ready` notification.
-
-When we query the status of the daemon, we can see the `Status` notifications.
+To check the unit status and logging, use the following commands:
 
 ```
-$ watch systemctl status mydaemon
+systemctl status <unitname> # status of the unit
+journalctl -t <syslogid>    # log output
 ```
+
+### SIGTERM handling
+
+When systemd stops a service it does so by sending the SIGTERM signal. At that point, the service
+should down cleanly. This signal can be handled in `AppDomain.CurrentDomain.ProcessExit` event.
+That event must be blocked during the shutdown and finally set `Environment.ExitCode` to `0` on clean shutdown.
+
+A proper wire-up for this logic is part of:
+
+- The ASP.NET Core [WebHost](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/web-host) and [Generic Host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host).
+- The preview [System.CommandLine](System.CommandLine) package. See [Process termination handling](https://github.com/dotnet/command-line-api/wiki/Process-termination-handling).
+
+### Socket based activation
+
+systemd supports socket-based activation. This can be used for services that expose their functionality
+via a socket. systemd will create the socket and keep it available. When someone accesses that socket
+(for example, makes a TCP connection), systemd will start the service and pass the socket to it.
+As long as no-one is using the service, the service will not be started. Optionally, a service can decide
+to exit when it has finished its work (for example, it was idle for some time). When a new connection is made,
+systemd will start it again.
+
+The following code shows an example of using the systemd socket using `ServiceManager.GetListenSockets`.
+It also uses `Socket.Poll` and when no client has connected for some time, it exits cleanly.
+
+```
+class Program
+{
+    const int AutoExitTimeoutMs = 30 * 1000;
+
+    static int Main(string[] args)
+    {
+        try
+        {
+            Socket acceptSocket = ServiceManager.GetListenSockets()[0];
+            acceptSocket.Blocking = false;
+
+            while (true)
+            {
+                if (!acceptSocket.Poll(AutoExitTimeoutMs * 1000, SelectMode.SelectRead))
+                {
+                    // Timeout expired, exit service.
+                    Console.WriteLine("Service idle, exiting.");
+                    return 0;
+                }
+
+                // Handle client
+                try
+                {
+                    using (Socket clientSocket = acceptSocket.Accept())
+                    {
+                        clientSocket.Send(Encoding.UTF8.GetBytes("Hello"));
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.Error.Write("Exception handling client: ");
+                    Console.Error.WriteLine(e);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Console.Error.Write("Unhandled exception: ");
+            Console.Error.WriteLine(e);
+            return 1;
+        }
+    }
+}
+```
+
+Sockets are described with a file named `<unitname>.socket`. When the `.socket` and `.service` file have the
+same unitname, systemd will use them together.
+
+```
+[Socket]
+ListenStream=8080
+
+[Install]
+WantedBy=sockets.target
+```
+
+`ListenStream` specifies the TCP port for our service.
+
+The `WantedBy` `sockets.target` indicates that, when enabled (i.e. installed), the socket should be opened with the system.
+
+The corresponding services file looks like this:
+```
+[Unit]
+Requires=%N.socket
+After=%N.socket
+
+[Service]
+Type=simple
+WorkingDirectory=/home/username/app
+ExecStart=/opt/dotnet/dotnet /home/username/app/App.dll
+
+[Install]
+WantedBy=multi-user.target
+Also=%N.socket
+```
+
+The `%N` placeholder here will be substituted by systemd with the unitname.
+
+The socket unit is referenced in a few places. `Requires` indicates the services needs the socket unit to start succesfully.
+`After` means that socket must be started before the service. `Also` means when we enable the service, we want to enable the socket too.
