@@ -146,17 +146,18 @@ The logging added is **structured logging**. For example, these entries are stor
 
 To follow the journal logging live you can use this command `journalctl -f -t dotnet -o json-pretty | grep -v \"_`.
 
-## Using Systemd with .NET Core applications
+## Using systemd with .NET Core applications
 
-Services can be created on the system-level systemd instance or on a user-level instance that is running as long as the user is logged in.
-The systemd commands, like `systemctl`, work on the system daemon by default. Passing the `--user` flag target the user daemon.
+Services can be created on the system-level systemd instance or on a user-level instance that is running as long as the user is
+logged in (unless lingering is enabled). The systemd commands, like `systemctl`, work on the system daemon by default. Passing
+the `--user` flag targets the user daemon.
 
-Configuration files are placed under `/etc/systemd/system/ ` and `~/.config/systemd/user/` respectively.
+Manually created configuration files are placed under `/etc/systemd/system/ ` and `~/.config/systemd/user/` respectively.
 For system unit files, ensure `chmod 664` and `chown root:root`.
 
-On Fedora with .NET SIG packages, the SELinux context needs to be updated by running the following commands:
+On Fedora with [.NET SIG packages](http://fedoraloves.net), the SELinux context needs to be updated by running the following commands:
 
-```
+```sh
 sudo yum install -y policycoreutils-python-util
 sudo semanage fcontext -a -t bin_t /usr/lib/dotnet/dotnet
 sudo restorecon -v /usr/lib64/dotnet/dotnet
@@ -164,11 +165,11 @@ sudo restorecon -v /usr/lib64/dotnet/dotnet
 
 Services are described with a file named `<unitname>.service` and look like this:
 
-```
+```ini
 [Service]
 Type=simple
 WorkingDirectory=/home/username/app
-ExecStart=/opt/dotnet/dotnet /home/username/app/App.dll
+ExecStart=/usr/bin/dotnet /home/username/app/App.dll
 Restart=no
 SyslogIdentifier=mydaemon
 User=username
@@ -191,7 +192,7 @@ For long running services setting this to `on-failure` is recommended.
 ASP.NET Core applications will throw an unhandled exception when they fail to bind the server address. The .NET Core runtime will turn
 that into a process abort. On systems using `systemd-coredump` (like Fedora) this will show up in the journal and a coredump will be created.
 Because this is a bit heavy, you may want to print out the exception and return a non-zero exit code instead:
-```
+```cs
 public static int Main(string[] args)
 {
     try
@@ -213,7 +214,7 @@ The `WantedBy` `multi-user.target` indicates that, when enabled (i.e. installed)
 `SyslogIdentifier` is the log identifier used for application output from standard output and standard error. When unset, the `ExecStart` process name
 will be used. Logging performed using the `Tmds.Systemd.Journal` class (and `Tmds.Systemd.Logging` package) is not aware of the value set here.
 ASP.NET Core application will output some messages to standard out by default on startup and shutdown. To omit these, you can use the
-SuppressStatusMessages method on the host builder, for example: `.SuppressStatusMessages(Console.IsInputRedirected)`.
+SuppressStatusMessages method on the [HostBuilder](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.hosting.hostbuilder), for example: `.SuppressStatusMessages(Console.IsInputRedirected)`.
 
 `Environment` can be used to set environment variables. Multiple `Environment` lines can be added to the service file.
 
@@ -235,10 +236,10 @@ journalctl -t <syslogid>    # log output
 ### SIGTERM handling
 
 When systemd stops a service it does so by sending the SIGTERM signal. At that point, the service
-should down cleanly. This signal can be handled in `AppDomain.CurrentDomain.ProcessExit` event.
+should shut down cleanly. This signal can be handled via the `AppDomain.CurrentDomain.ProcessExit` event.
 That event must be blocked during the shutdown and finally set `Environment.ExitCode` to `0` on clean shutdown.
 
-A proper wire-up for this logic is part of:
+A proper wire-up for this is part of:
 
 - The ASP.NET Core [WebHost](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/web-host) and [Generic Host](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/generic-host).
 - The preview [System.CommandLine](System.CommandLine) package. See [Process termination handling](https://github.com/dotnet/command-line-api/wiki/Process-termination-handling).
@@ -252,13 +253,13 @@ As long as no-one is using the service, the service will not be started. Optiona
 to exit when it has finished its work (for example, it was idle for some time). When a new connection is made,
 systemd will start it again.
 
-The following code shows an example of using the systemd socket using `ServiceManager.GetListenSockets`.
-It also uses `Socket.Poll` and when no client has connected for some time, it exits cleanly.
+The following code shows an example of obtaining the systemd socket using `ServiceManager.GetListenSockets`.
+It also uses `Socket.Poll` to exit cleanly when no client has connected for some time.
 
-```
+```cs
 class Program
 {
-    const int AutoExitTimeoutMs = 30 * 1000;
+    const int AutoExitTimeoutMs = 30 * 1000; // 30 sec
 
     static int Main(string[] args)
     {
@@ -304,7 +305,7 @@ class Program
 Sockets are described with a file named `<unitname>.socket`. When the `.socket` and `.service` file have the
 same unitname, systemd will use them together.
 
-```
+```ini
 [Socket]
 ListenStream=8080
 
@@ -314,9 +315,9 @@ WantedBy=sockets.target
 
 `ListenStream` specifies the TCP port for our service.
 
-The `WantedBy` `sockets.target` indicates that, when enabled (i.e. installed), the socket should be opened with the system.
+The `WantedBy` `sockets.target` indicates that, when enabled (i.e. installed), the socket should be started with the system.
 
-The corresponding services file looks like this:
+The corresponding service file looks like this:
 ```
 [Unit]
 Requires=%N.socket
@@ -325,7 +326,7 @@ After=%N.socket
 [Service]
 Type=simple
 WorkingDirectory=/home/username/app
-ExecStart=/opt/dotnet/dotnet /home/username/app/App.dll
+ExecStart=/usr/bin/dotnet /home/username/app/App.dll
 
 [Install]
 WantedBy=multi-user.target
@@ -334,5 +335,5 @@ Also=%N.socket
 
 The `%N` placeholder here will be substituted by systemd with the unitname.
 
-The socket unit is referenced in a few places. `Requires` indicates the services needs the socket unit to start succesfully.
+The socket unit is referenced in a few places. `Requires` indicates the service needs the socket unit to start succesfully.
 `After` means that socket must be started before the service. `Also` means when we enable the service, we want to enable the socket too.
