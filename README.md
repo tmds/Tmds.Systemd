@@ -318,7 +318,7 @@ WantedBy=sockets.target
 The `WantedBy` `sockets.target` indicates that, when enabled (i.e. installed), the socket should be started with the system.
 
 The corresponding service file looks like this:
-```
+```ini
 [Unit]
 Requires=%N.socket
 After=%N.socket
