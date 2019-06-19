@@ -207,7 +207,11 @@ namespace Tmds.Systemd
 
         private static void ErrorWhileLogging(string cause)
         {
-            Console.WriteLine($"Error writing message to journal: {cause}");
+            const string SD_ERR = "<3>";
+            var pri = Console.IsErrorRedirected && ServiceManager.IsRunningAsService 
+                ? SD_ERR 
+                : null;
+            Console.Error.WriteLine("{0}Error writing message to journal: {1}", pri, cause);
         }
 
         private unsafe struct IOVector
