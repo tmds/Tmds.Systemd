@@ -67,18 +67,8 @@ namespace Tmds.Systemd
                 }
 
                 // Check process name for the parent process to match "systemd\n"
-                using (var commFile = File.Open("/proc/" + ppidString + "/comm", FileMode.Open, FileAccess.Read, FileShare.Read))
-                {
-                    return commFile.ReadByte() == 's'
-                        && commFile.ReadByte() == 'y'
-                        && commFile.ReadByte() == 's'
-                        && commFile.ReadByte() == 't'
-                        && commFile.ReadByte() == 'e'
-                        && commFile.ReadByte() == 'm'
-                        && commFile.ReadByte() == 'd'
-                        && commFile.ReadByte() == '\n'
-                        && commFile.ReadByte() == -1;
-                }
+                var comm = File.ReadAllBytes("/proc/" + ppidString + "/comm");
+                return comm.AsSpan().SequenceEqual(System.Text.Encoding.ASCII.GetBytes("systemd\n"));
             }
             catch
             {
