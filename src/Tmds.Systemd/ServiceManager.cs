@@ -57,17 +57,17 @@ namespace Tmds.Systemd
             {
                 // Test parent process
                 var parentPid = getppid();
-                var pidString = parentPid.ToString(NumberFormatInfo.InvariantInfo);
+                var ppidString = parentPid.ToString(NumberFormatInfo.InvariantInfo);
 
                 // If parent PID is not 1, this may be a user unit, in this case it must match MANAGERPID envvar
                 if (parentPid != 1
-                    && Environment.GetEnvironmentVariable("MANAGERPID") != pidString)
+                    && Environment.GetEnvironmentVariable("MANAGERPID") != ppidString)
                 {
                     return false;
                 }
 
                 // Check process name for the parent process to match "systemd\n"
-                using (var commFile = File.Open("/proc/" + pidString + "/comm", FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (var commFile = File.Open("/proc/" + ppidString + "/comm", FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
                     return commFile.ReadByte() == 's'
                         && commFile.ReadByte() == 'y'
