@@ -77,7 +77,7 @@ namespace Tmds.Systemd
             return false;
         }
 
-        [DllImport("libc", SetLastError = true)]
+        [DllImport("libc")]
         private static extern int getppid();
     }
 }
