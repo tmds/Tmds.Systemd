@@ -46,7 +46,7 @@ namespace Tmds.Systemd
                 return false;
             }
 
-            // We've got invocation id, it's systemd >= 232 running a unit
+            // We've got invocation id, it's systemd >= 232 running a unit (either directly or through a child process)
             if (InvocationId != null)
             {
                 return true;
@@ -55,7 +55,7 @@ namespace Tmds.Systemd
             // Either it's not a service, or systemd is < 232, do a bit more digging
             try
             {
-                // Test parent process
+                // Test parent process (this matches only direct parents, walking all the way up to the PID 1 is probably not what we would want)
                 var parentPid = getppid();
                 var ppidString = parentPid.ToString(NumberFormatInfo.InvariantInfo);
 
@@ -77,7 +77,7 @@ namespace Tmds.Systemd
             return false;
         }
 
-        [DllImport("libc", SetLastError = true)]
+        [DllImport("libc")]
         private static extern int getppid();
     }
 }
