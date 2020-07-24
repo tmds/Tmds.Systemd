@@ -14,10 +14,13 @@ namespace Tmds.Systemd.Logging
         private static readonly JournalFieldName InnerException = "INNEREXCEPTION";
         private static readonly JournalFieldName InnerExceptionType = "INNEREXCEPTION_TYPE";
         private static readonly JournalFieldName InnerExceptionStackTrace = "INNEREXCEPTION_STACKTRACE";
+        private static readonly JournalFieldName FullException = "FULL_EXCEPTION";
         private const string OriginalFormat = "{OriginalFormat}";
 
         private readonly LogFlags _additionalFlags;
         private readonly string   _syslogIdentifier;
+        private readonly bool     _setFullException;
+        private readonly Func<Exception, string> _fullExceptionFormatter;
 
         internal JournalLogger(string name, IExternalScopeProvider scopeProvider, JournalLoggerOptions options)
         {
@@ -34,6 +37,8 @@ namespace Tmds.Systemd.Logging
             }
             _syslogIdentifier = options.SyslogIdentifier;
             _additionalFlags |= LogFlags.DontAppendSyslogIdentifier;
+            _setFullException = options.SetFullException;
+            _fullExceptionFormatter = options.FullExceptionFormatter;
         }
 
         internal IExternalScopeProvider ScopeProvider { get; set; }
@@ -100,15 +105,31 @@ namespace Tmds.Systemd.Logging
                     }
                     if (exception != null)
                     {
-                        logMessage.Append(Exception, exception.Message);
-                        logMessage.Append(ExceptionType, exception.GetType().FullName);
-                        logMessage.Append(ExceptionStackTrace, exception.StackTrace);
-                        Exception innerException = exception.InnerException;
-                        if (innerException != null)
+                        if (_setFullException)
                         {
-                            logMessage.Append(InnerException, innerException.Message);
-                            logMessage.Append(InnerExceptionType, innerException.GetType().FullName);
-                            logMessage.Append(InnerExceptionStackTrace, innerException.StackTrace);
+                            string exceptionString;
+                            if (_fullExceptionFormatter != null)
+                            {
+                                exceptionString = _fullExceptionFormatter(exception);
+                            }
+                            else
+                            {
+                                exceptionString = exception.ToString();
+                            }
+                            logMessage.Append(FullException, exceptionString);
+                        }
+                        else
+                        {
+                            logMessage.Append(Exception, exception.Message);
+                            logMessage.Append(ExceptionType, exception.GetType().FullName);
+                            logMessage.Append(ExceptionStackTrace, exception.StackTrace);
+                            Exception innerException = exception.InnerException;
+                            if (innerException != null)
+                            {
+                                logMessage.Append(InnerException, innerException.Message);
+                                logMessage.Append(InnerExceptionType, innerException.GetType().FullName);
+                                logMessage.Append(InnerExceptionStackTrace, innerException.StackTrace);
+                            }
                         }
                     }
                     if (!string.IsNullOrEmpty(message))
