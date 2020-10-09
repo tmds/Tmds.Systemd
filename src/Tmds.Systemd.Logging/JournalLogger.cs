@@ -141,6 +141,7 @@ namespace Tmds.Systemd.Logging
                     var pair = keyValuePairs[i];
                     if (pair.Key == OriginalFormat)
                     {
+                        message.Append(fieldName, state.ToString());
                         continue;
                     }
                     message.Append(pair.Key, pair.Value);
