@@ -130,9 +130,9 @@ namespace Tmds.Systemd.Logging
         }
 
         private static void AppendScope(object scope, JournalMessage message)
-            => AppendState("SCOPE", scope, message);
+            => AppendState("SCOPE", scope, message, formatState: true);
 
-        private static void AppendState(string fieldName, object state, JournalMessage message)
+        private static void AppendState(string fieldName, object state, JournalMessage message, bool formatState = false)
         {
             if (state is IReadOnlyList<KeyValuePair<string, object>> keyValuePairs)
             {
@@ -141,7 +141,10 @@ namespace Tmds.Systemd.Logging
                     var pair = keyValuePairs[i];
                     if (pair.Key == OriginalFormat)
                     {
-                        message.Append(fieldName, state.ToString());
+                        if (formatState)
+                        {
+                            message.Append(fieldName, state.ToString());
+                        }
                         continue;
                     }
                     message.Append(pair.Key, pair.Value);
