@@ -23,8 +23,7 @@ namespace Tmds.Systemd.Logging
         public string SyslogIdentifier { get; set; } = Journal.SyslogIdentifier;
 
         /// <summary>
-        /// Gets or sets a delegate that formats an exception and sets message fields.
-        /// If unset, the default fields are set.
+        /// Gets or sets a delegate that is used to format exceptions.
         /// </summary>
         public Action<Exception, JournalMessage> ExceptionFormatter { get; set; } = DefaultExceptionFormatter;
     }
