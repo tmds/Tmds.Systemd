@@ -6,6 +6,9 @@ namespace Tmds.Systemd.Logging
 {
     class JournalLogger : ILogger
     {
+        internal static readonly Action<Exception, JournalMessage> DefaultExceptionFormatter =
+            (exception, message) => FormatException(exception, message);
+
         private static readonly JournalFieldName Logger = "LOGGER";
         private static readonly JournalFieldName EventId = "EVENTID";
         private static readonly JournalFieldName Exception = "EXCEPTION";
@@ -102,23 +105,7 @@ namespace Tmds.Systemd.Logging
                     }
                     if (exception != null)
                     {
-                        if (_exceptionFormatter != null)
-                        {
-                            _exceptionFormatter(exception, logMessage);
-                        }
-                        else
-                        {
-                            logMessage.Append(Exception, exception.Message);
-                            logMessage.Append(ExceptionType, exception.GetType().FullName);
-                            logMessage.Append(ExceptionStackTrace, exception.StackTrace);
-                            Exception innerException = exception.InnerException;
-                            if (innerException != null)
-                            {
-                                logMessage.Append(InnerException, innerException.Message);
-                                logMessage.Append(InnerExceptionType, innerException.GetType().FullName);
-                                logMessage.Append(InnerExceptionStackTrace, innerException.StackTrace);
-                            }
-                        }
+                        _exceptionFormatter?.Invoke(exception, logMessage);
                     }
                     if (!string.IsNullOrEmpty(message))
                     {
@@ -158,6 +145,20 @@ namespace Tmds.Systemd.Logging
             else
             {
                 message.Append(fieldName, state);
+            }
+        }
+
+        private static void FormatException(Exception exception, JournalMessage logMessage)
+        {
+            logMessage.Append(Exception, exception.Message);
+            logMessage.Append(ExceptionType, exception.GetType().FullName);
+            logMessage.Append(ExceptionStackTrace, exception.StackTrace);
+            Exception innerException = exception.InnerException;
+            if (innerException != null)
+            {
+                logMessage.Append(InnerException, innerException.Message);
+                logMessage.Append(InnerExceptionType, innerException.GetType().FullName);
+                logMessage.Append(InnerExceptionStackTrace, innerException.StackTrace);
             }
         }
 
