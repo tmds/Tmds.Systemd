@@ -1,3 +1,5 @@
+using System;
+
 namespace Tmds.Systemd.Logging
 {
     /// <summary>
@@ -5,9 +7,24 @@ namespace Tmds.Systemd.Logging
     /// </summary>
     public class JournalLoggerOptions
     {
-        /// <summary>Drop messages instead of blocking.</summary>
+        /// <summary>
+        /// Default formatter for exceptions.
+        /// </summary>
+        public static Action<Exception, JournalMessage> DefaultExceptionFormatter => JournalLogger.DefaultExceptionFormatter;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether messages are dropped when busy instead of blocking.
+        /// </summary>
         public bool DropWhenBusy { get; set; }
-        /// <summary>The syslog identifier added to each log message.</summary>
+
+        /// <summary>
+        /// Gets or sets the syslog identifier added to each log message.
+        /// </summary>
         public string SyslogIdentifier { get; set; } = Journal.SyslogIdentifier;
+
+        /// <summary>
+        /// Gets or sets a delegate that is used to format exceptions.
+        /// </summary>
+        public Action<Exception, JournalMessage> ExceptionFormatter { get; set; } = DefaultExceptionFormatter;
     }
 }
