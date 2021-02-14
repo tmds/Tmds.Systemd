@@ -26,7 +26,7 @@ namespace Tmds.Systemd.Tests
             {
                 ServiceManager.Reset(fds[0]);
                 Socket[] sockets = fds.GetListenSockets();
-                Assert.Equal(0, sockets.Length);
+                Assert.Empty(sockets);
             }
 
             // set
@@ -42,7 +42,7 @@ namespace Tmds.Systemd.Tests
                 
                 // Second call returns empty
                 sockets = ServiceManager.GetListenSockets();
-                Assert.Equal(0, sockets.Length);
+                Assert.Empty(sockets);
             }
 
             ServiceManager.Reset(SD_LISTEN_FDS_START);
@@ -56,7 +56,7 @@ namespace Tmds.Systemd.Tests
                 string myPid = "1";
                 string listenPid = "2";
                 Socket[] sockets = fds.GetListenSockets(myPid, listenPid, fds[0], fds.Count);
-                Assert.Equal(0, sockets.Length);
+                Assert.Empty(sockets);
             }
         }
 
@@ -91,9 +91,9 @@ namespace Tmds.Systemd.Tests
                 Socket[] sockets = fds.GetListenSockets(fds[0], fds.Count);
                 foreach (Socket server in sockets)
                 {
-                    Assert.Equal(server.SocketType, SocketType.Stream);
-                    Assert.Equal(server.AddressFamily, addressFamily);
-                    Assert.Equal(server.ProtocolType, ProtocolType.Tcp);
+                    Assert.Equal(SocketType.Stream, server.SocketType);
+                    Assert.Equal(addressFamily, server.AddressFamily);
+                    Assert.Equal(ProtocolType.Tcp, server.ProtocolType);
                     using (var client = new Socket(addressFamily, SocketType.Stream, ProtocolType.Tcp))
                     {
                         client.Connect(server.LocalEndPoint);

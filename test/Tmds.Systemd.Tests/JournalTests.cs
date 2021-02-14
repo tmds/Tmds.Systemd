@@ -227,7 +227,7 @@ namespace Tmds.Systemd.Tests
 
                 // Append is a noop
                 message.Append("FIELD", "Value");
-                Assert.Equal(0, message.GetData().Count);
+                Assert.Empty(message.GetData());
 
                 // This shouldn't throw.
                 LogResult result = Journal.Log(LogFlags.Information, message);
