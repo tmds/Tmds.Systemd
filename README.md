@@ -99,7 +99,7 @@ The logger can be configured in `appsettings.json` using the `Journal` alias. Th
     "Microsoft": "Information"
   },
   "Journal": {
-    "IncludeScopes": false,
+    "SyslogIdentifier": "dotnet",
     "LogLevel": {
       "Default": "Warning",
       "System": "Warning",
