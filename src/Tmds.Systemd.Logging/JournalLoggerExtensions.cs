@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging.Configuration;
 using Tmds.Systemd.Logging;
 using Tmds.Systemd;
 
@@ -19,7 +20,9 @@ namespace Microsoft.Extensions.Logging
         {
             if (Journal.IsSupported)
             {
+                builder.AddConfiguration();
                 builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, JournalLoggerProvider>());
+                LoggerProviderOptions.RegisterProviderOptions<JournalLoggerOptions, JournalLoggerProvider>(builder.Services);
             }
             return builder;
         }
